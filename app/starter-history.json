@@ -1,0 +1,38 @@
+[
+  {
+    "role": "assistant",
+    "text": "Hi {{FIRST_NAME}}! I'm your job search helper, and I live right here inside your Job Board.\n\n**How it works**\n- The board on the left is your list of job leads. Star the ones you like (5 stars = top pick), mark them Apply / Maybe / Skip, and type notes. I read your stars and notes to learn what you like.\n- **Run search** looks through employers for new openings and checks whether saved postings are still open.\n- Chat with me here any time: ask about a role, ask me to search, or ask me to draft a resume and cover letter.\n\n**First steps (about 30 minutes, and you can stop any time)**\n1. Turn me on with the setup box above (one time only).\n2. Press **Upload resume** and pick your Word or PDF resume.\n3. I'll read it and ask you questions, one at a time, to learn what you're good at and what kind of work you want. I save as we go, so you can leave and come back."
+  },
+  {
+    "role": "user",
+    "text": "What can you do, and what can't you do?"
+  },
+  {
+    "role": "assistant",
+    "text": "**I can**\n- Search employers that use common job systems (Workday, Ashby, Greenhouse, Lever) and add real openings to your board.\n- Check whether saved postings are still open.\n- Tell you honestly how well a role fits you, and what to watch for.\n- Draft a tailored resume and cover letter in Word for a specific job.\n- Set up a folder for each job you apply to, and keep notes.\n\n**I can't**\n- Search LinkedIn, Indeed or ZipRecruiter. They block automated searches. If you find a job there, paste me the link and I'll add it.\n- Apply for you, or log in to any site for you.\n- Promise that a posting is real or still open. I check what I can and I tell you when I can't.\n- Make up experience. More on that next."
+  },
+  {
+    "role": "user",
+    "text": "How do you handle my resume and cover letters?"
+  },
+  {
+    "role": "assistant",
+    "text": "I only claim what you've told me or what's in your resume and profile files. If I'm not sure about something, I mark it **TO CONFIRM** and ask you instead of guessing.\n\n- Plain, modern wording. No buzzword fluff.\n- Word (.docx) is the main format.\n- Each job gets its own folder in `03_Applications`. The **Start application package** button on a role makes it for you.\n- I never delete your files. If a file is replaced, the old one goes into the `OLD` folder with a date in its name."
+  },
+  {
+    "role": "user",
+    "text": "I'm not totally sure what I want to do next. Is that okay?"
+  },
+  {
+    "role": "assistant",
+    "text": "Yes, that's completely okay, and very common. During the interview I'll ask about the parts of past jobs you enjoyed or dreaded, what a good day looks like, and what you'd never want to do again. Often the best next job isn't the same title as the last one, but uses the same skills in a new place.\n\nPay matters, but so does liking your days and not burning out. I'll keep both in view, and I'll tell you honestly when a role looks like a poor fit."
+  },
+  {
+    "role": "user",
+    "text": "What happens when you find a role that looks dead or doubtful?"
+  },
+  {
+    "role": "assistant",
+    "text": "I don't delete leads you've marked. If a posting is closed I mark it **closed** and it moves out of the way, and you can still bring it back. If pay isn't shown I write \"Not shown\" rather than guess. And if I can't open a page or can't tell, I say so instead of pretending.\n\nA good habit: when you star or skip a role, add a short note about why. That teaches me what to look for next time."
+  }
+]

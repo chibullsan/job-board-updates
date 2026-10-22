@@ -1,0 +1,74 @@
+{
+  "version": "1.0.0",
+  "notes": "First release: setup, resume upload, interview, search, updates.",
+  "publishedAt": "2026-10-22T22:12:47.968Z",
+  "package": {
+    "dependencies": {
+      "@cursor/sdk": "^1.0.40",
+      "mammoth": "^1.13.0",
+      "unpdf": "^1.9.1"
+    }
+  },
+  "files": [
+    {
+      "path": "server.js",
+      "sha256": "82d2759634eaecdda2b55a83849c9dee5fb07499868e0f525d4415a283b06cde",
+      "size": 30259
+    },
+    {
+      "path": "index.html",
+      "sha256": "9d78034d5604c814c746d827a39948bcfaca1e1909ef002f0d9dead6f10ef8a1",
+      "size": 46894
+    },
+    {
+      "path": "refresh-board-run.js",
+      "sha256": "b068a31319b327004881365c86fbd6bdd290936d4107372e0d1443a8545f1cd7",
+      "size": 24992
+    },
+    {
+      "path": "resume-extract.js",
+      "sha256": "d2ab9f3b9ad790b2ede30cc647befc7f1db3c03e8aa634335e9124ac9b6628a8",
+      "size": 1641
+    },
+    {
+      "path": "probe-sources.js",
+      "sha256": "51ba337514644509c001a5bf3ce38b579c54fe3f6cc068d949b877f7010b416c",
+      "size": 3925
+    },
+    {
+      "path": "updater.js",
+      "sha256": "032f56da1476700265621e457e36f430b03b4c209b44a13d0e7a11730c2c3140",
+      "size": 12781
+    },
+    {
+      "path": "AGENT-INSTRUCTIONS.template.md",
+      "sha256": "d8764ce7f95a22f546da282ae9a211ad24c73069929f0659364b0c0fed085780",
+      "size": 6064
+    },
+    {
+      "path": "INTERVIEW-GUIDE.md",
+      "sha256": "d41927b26be197b24343d5741377e8f453b150a2606abc3156d4a6a4397b1944",
+      "size": 8146
+    },
+    {
+      "path": "starter-history.json",
+      "sha256": "3a104140ee7b29916c682961f068d0d875218c4c24ef2a675834b185eb707bdf",
+      "size": 3562
+    },
+    {
+      "path": "version.json",
+      "sha256": "026ea81bd62a734ed47ce992b35c78abbe7c92b9e232f12605e1c9b0c11869a9",
+      "size": 42
+    },
+    {
+      "path": "package.json",
+      "sha256": "0c194e1cc7d538ac65c1ee152a55adbca6b556d74cb2c48e5af9da1de6375928",
+      "size": 281
+    },
+    {
+      "path": "update-config.json",
+      "sha256": "9b918c4ccb918ad6bacb46ae577501156a225556439132efae8fe78cc10daff8",
+      "size": 88
+    }
+  ]
+}

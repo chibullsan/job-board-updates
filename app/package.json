@@ -1,0 +1,14 @@
+{
+  "name": "job-board-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local job board with live chat agent",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.40",
+    "mammoth": "^1.13.0",
+    "unpdf": "^1.9.1"
+  }
+}

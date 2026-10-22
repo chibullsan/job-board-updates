@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Board</title>
+<style>
+:root{
+  --bg:#eef1f6;--panel:#fff;--sect:#f8fafc;--toolbar:#fff;--ink:#0a0a0a;--mute:#333333;
+  --line:#94a3b8;--line-soft:#cbd5e1;
+  --action:#0d9488;--actionInk:#fff;--select:#334155;--selectInk:#fff;
+  --open:#fffbeb;--open-border:#f59e0b;--link:#0d9488;
+  --ok:#15803d;--warn:#b45309;--bad:#b91c1c;
+  --chip:#e2e8f0;--chip-text:#1a1a1a;--hi:#fef9c3;
+  --shadow:0 1px 2px rgba(15,23,42,.06);
+  --btn-bg:#f0fdf4;--btn-border:#64748b;--input-bg:#fff;--input-border:#cbd5e1;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#e2e8f0;--panel:#fff;--sect:#f8fafc;--toolbar:#fff;--ink:#0a0a0a;--mute:#333333;
+    --line:#94a3b8;--line-soft:#cbd5e1;
+    --action:#0d9488;--actionInk:#fff;--select:#334155;--selectInk:#fff;
+    --open:#fffbeb;--open-border:#f59e0b;--link:#0d9488;
+    --ok:#15803d;--warn:#b45309;--bad:#b91c1c;
+    --chip:#e2e8f0;--chip-text:#1a1a1a;--hi:#fef9c3;
+    --shadow:0 1px 2px rgba(15,23,42,.08);
+    --btn-bg:#f0fdf4;--btn-border:#64748b;--input-bg:#fff;--input-border:#cbd5e1;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 Segoe UI,Calibri,system-ui,sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
+header{padding:14px 20px;background:var(--panel);border-bottom:2px solid var(--line-soft);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px}
+.header-row{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-start;width:100%}
+.activity-ticker{width:100%;padding:8px 12px;border-radius:8px;font-size:13px;border:1px solid var(--line-soft);background:var(--sect);color:var(--mute);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.activity-ticker.active{background:#fffbeb;border-color:#fbbf24;color:var(--ink);font-weight:500}
+.activity-ticker.active::before{content:"● ";color:#f59e0b}
+.server-warn{width:100%;padding:10px 12px;border-radius:8px;font-size:13px;background:#fef2f2;border:1px solid #f87171;color:#7f1d1d;line-height:1.4}
+.server-warn b{display:block;margin-bottom:4px}
+h1{font-size:21px;margin:0 0 4px;font-weight:700}
+.sub{color:var(--mute);font-size:13px;max-width:52em;line-height:1.4}
+.header-tip{margin-top:6px;padding:8px 10px;background:var(--sect);border:1px solid var(--line-soft);border-radius:8px;font-size:12.5px;color:var(--ink)}
+.count{color:var(--ink)}
+.counts{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;align-items:flex-start}
+.count{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;box-shadow:var(--shadow)}
+.count b{font-size:17px;margin-right:4px;color:var(--ink)}
+#toggleChat{margin-left:auto;align-self:center}
+main{flex:1;display:flex;min-height:0}
+#board{flex:1;overflow:auto;padding:16px 20px 24px}
+#chat{width:400px;border-left:2px solid var(--line-soft);background:var(--panel);display:flex;flex-direction:column;min-height:0;box-shadow:inset 4px 0 12px rgba(0,0,0,.04)}
+#chat.hidden{display:none}
+.toolbar{background:var(--toolbar);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.toolbar-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--ink);margin-bottom:10px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.bar+.bar{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-soft)}
+.toolbar-compact{padding:10px 12px}
+.toolbar-compact .bar+.bar{margin-top:0;padding-top:0;border-top:none}
+.toolbar-compact .bar{gap:8px}
+.bar-actions{gap:8px}
+input[type=search],select,textarea,input[type=text]{font:inherit;color:var(--ink);background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;padding:8px 11px;box-shadow:inset 0 1px 2px rgba(15,23,42,.04)}
+input[type=search]:focus,select:focus,textarea:focus,input[type=text]:focus{outline:2px solid #fcd34d;outline-offset:1px;border-color:#94a3b8;background:#fff}
+input[type=search]{min-width:240px;flex:1;max-width:360px}
+select{min-width:140px}
+label.chk{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:var(--input-bg);border:2px solid var(--line-soft);border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer}
+label.chk-sm{padding:4px 8px;font-size:12px}
+.status-filters{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+.status-filters .chk-st-Apply{border-color:#bbf7d0;background:#f6fbf8}
+.status-filters .chk-st-Maybe{border-color:#fde68a;background:#fffdf5}
+.status-filters .chk-st-Skip{border-color:#fecdd3;background:#fff8f8}
+.status-filters .chk-st-Applied{border-color:#99f6e4;background:#f4fbfb}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:4px 0}
+.chips-label{font-size:12px;font-weight:600;color:var(--ink);align-self:center;margin-right:4px}
+button{font:inherit;cursor:pointer;color:var(--ink);background:var(--btn-bg);border:1px solid var(--btn-border);border-radius:8px;padding:7px 14px;font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08)}
+button:hover{background:#f1f5f9;border-color:#475569}
+button.on{background:var(--select);color:var(--selectInk);border-color:var(--select)}
+button.primary{background:var(--action);color:var(--actionInk);border-color:#0f766e;font-weight:700}
+button.primary:hover{filter:brightness(1.06);background:#14b8a6}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;margin-bottom:14px;box-shadow:var(--shadow);overflow:hidden}
+.card.flash{background:var(--hi);border-color:var(--warn)}
+.card.closed{opacity:.85}
+.card.closed .title,.card.closed .meta,.card.closed .why{color:var(--ink)}
+.card.st-Apply{background:#f6fbf8;border-color:#e3f3ea}
+.card.st-Apply .head{background:#f6fbf8}
+.card.st-Maybe{background:#fffdf5;border-color:#f5ecd3}
+.card.st-Maybe .head{background:#fffdf5}
+.card.st-Applied{background:#f4fbfb;border-color:#dcefe9}
+.card.st-Applied .head{background:#f4fbfb}
+.card.st-Skip{background:#fff8f8;border-color:#f5e4e6}
+.card.st-Skip .head{background:#fff8f8}
+.card.st-Skip .title,.card.st-Skip .meta,.card.st-Skip .why,.card.st-Skip .pay,.card.st-Skip .note-prev{color:var(--mute)}
+.card.open{border-color:var(--open-border);border-width:2px;box-shadow:0 0 0 3px rgba(217,119,6,.25),var(--shadow)}
+.card.open.st-Apply{box-shadow:0 0 0 2px rgba(16,185,129,.2),var(--shadow)}
+.card.open.st-Maybe{box-shadow:0 0 0 2px rgba(245,158,11,.18),var(--shadow)}
+.card.open.st-Skip{box-shadow:0 0 0 2px rgba(244,63,94,.12),var(--shadow)}
+.head{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;cursor:pointer;background:var(--panel)}
+.card.open .head{border-bottom:2px solid var(--open-border)}
+.card.open:not([class*="st-"]) .head{background:var(--open)}
+.card.open.st-Apply .head{background:#eef8f2}
+.card.open.st-Maybe .head{background:#fff9eb}
+.card.open.st-Skip .head{background:#fff5f5}
+.card.open.st-Applied .head{background:#eef8f6}
+.title{font-weight:700;font-size:16px;line-height:1.35;color:var(--ink)}
+.meta{color:var(--mute);font-size:13px;margin-top:4px;font-weight:500}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.badge{font-size:11px;border-radius:6px;padding:3px 8px;background:var(--chip);color:var(--chip-text);font-weight:650;letter-spacing:.03em;border:1px solid transparent}
+.f-STRONG{background:var(--ok);color:#fff;border-color:transparent}.f-GOOD{background:#0369a1;color:#fff}.f-MEDIUM{background:var(--warn);color:#fff}.f-CHECK{background:#57534e;color:#fff}.f-REACH{background:#7e22ce;color:#fff}.f-SKIP{background:var(--bad);color:#fff}
+.badge.new{background:var(--select);color:var(--selectInk)}
+.badge.closed{background:var(--bad);color:#fff}
+.stat{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:100px;padding-left:12px;border-left:1px solid var(--line-soft)}
+.stat .st{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:6px;background:var(--sect);color:var(--ink)}
+.star-title{color:var(--warn);font-size:15px;margin-right:8px;letter-spacing:1px}
+.note-prev{font-size:13px;color:var(--ink);font-style:italic;margin-top:6px;padding:8px 10px;background:var(--input-bg);border-radius:6px;border:2px solid var(--line-soft);border-left:4px solid var(--action)}
+.stars{display:inline-flex;gap:2px;vertical-align:middle;padding:4px 8px;background:var(--input-bg);border:2px solid var(--input-border);border-radius:8px}
+.star-btn{font-size:26px;line-height:1;padding:0 3px;background:none;border:none;cursor:pointer;color:#78716c;box-shadow:none}
+.star-btn.on{color:var(--warn)}
+.star-btn:hover,.star-btn:focus-visible{color:var(--warn)}
+.st.Apply{color:var(--ok)}.st.Maybe{color:var(--warn)}.st.Skip{color:var(--bad)}.st.Applied{color:var(--action)}
+.pay{font-weight:700;font-size:14px;white-space:nowrap;color:var(--ink)}
+.body{display:none;padding:0 16px 16px}
+.card.open .body{display:block}
+.why{margin:14px 0 0;padding:12px 14px;background:var(--input-bg);border-radius:8px;border:2px solid var(--line-soft);line-height:1.5;color:var(--ink)}
+.sect{margin-top:14px;padding:12px 14px;background:var(--sect);border:2px solid var(--line-soft);border-radius:8px}
+.sect-h{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--ink);margin-bottom:10px}
+.sect-app{border-left:5px solid var(--action)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row-actions{margin-top:10px}
+.body textarea{width:100%;min-height:64px;resize:vertical;margin-top:10px}
+.body code{font-size:12px;background:var(--panel);padding:2px 6px;border-radius:4px;border:1px solid var(--line-soft)}
+a{color:#0f766e;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.group-h{margin:20px 0 8px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--ink);padding-bottom:4px;border-bottom:2px solid var(--line-soft)}
+#chatHead{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;background:var(--sect)}
+#chatHead b{flex:1;font-size:15px}
+#stopBtn{font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:12px;padding:6px 14px}
+#stopBtn:not(:disabled){background:var(--bad);color:#fff;border-color:var(--bad)}
+#stopBtn:not(:disabled):hover{filter:brightness(1.08)}
+#stopBtn:disabled{opacity:.45;cursor:not-allowed}
+#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.m{max-width:94%;padding:10px 12px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word;border:1px solid var(--line-soft)}
+.m.u{align-self:flex-end;background:var(--select);color:var(--selectInk);border-color:var(--select)}
+.m.a{align-self:flex-start;background:var(--panel);white-space:normal;color:var(--ink)}
+.m.s{align-self:center;color:var(--mute);font-size:12.5px;background:none;padding:0;border:none;font-weight:500}
+.m.e{align-self:flex-start;background:var(--bad);color:#fff;border-color:var(--bad)}
+.m ul{margin:4px 0;padding-left:20px}
+#inputRow{padding:12px 14px;display:flex;gap:10px;align-items:flex-end;background:var(--panel);border-top:1px solid var(--line-soft)}
+#inp{flex:1;min-height:44px;max-height:140px;resize:vertical}
+#banner{background:var(--hi);color:var(--ink);padding:10px 14px;font-size:13px;border-bottom:1px solid var(--line)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--select);color:var(--selectInk);padding:10px 18px;border-radius:10px;display:none;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.2);font-weight:600;border:2px solid var(--ink)}
+.empty{padding:48px 24px;text-align:center;color:var(--mute);background:var(--toolbar);border:1px dashed var(--line);border-radius:10px}
+@media (max-width:900px){main{flex-direction:column}#chat{width:auto;height:50vh;border-left:0;border-top:2px solid var(--line-soft)}.stat{border-left:0;padding-left:0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-row">
+    <div><h1 id="boardTitle">Job Board</h1><div class="sub" id="upd"></div><div class="header-tip">Star roles (5 = top pick). Notes stay on this PC and the assistant reads them. Use the browser <strong>Refresh</strong> button if the page looks outdated.</div></div>
+    <div class="counts" id="counts"></div>
+    <button id="toggleChat" type="button">Hide assistant</button>
+    <button id="updBtn" type="button" style="display:none" title="See if there is a newer version of the Job Board">Check for updates</button>
+    <button id="pubBtn" type="button" style="display:none" title="Send your latest program changes to the other boards">Publish update</button>
+  </div>
+  <div id="activityTicker" class="activity-ticker idle" role="status" aria-live="polite">Idle — nothing running</div>
+  <div id="serverWarn" class="server-warn" style="display:none" role="alert"></div>
+</header>
+<main>
+  <section id="board">
+    <div class="toolbar toolbar-compact">
+      <div class="bar bar-actions">
+        <input type="search" id="q" aria-label="Search roles, companies, and notes">
+        <span class="chips-label">Mode</span>
+        <div class="chips" id="modeChips"></div>
+        <span class="chips-label">Fit</span>
+        <div class="chips" id="fitChips"></div>
+        <select id="group" title="Group"></select>
+        <span class="chips-label">Your status</span>
+        <span id="statusFilters" class="status-filters" title="Which decisions to show in the list">
+          <label class="chk chk-sm"><input type="checkbox" id="showStNone" checked> Not reviewed</label>
+          <label class="chk chk-sm chk-st-Apply"><input type="checkbox" id="showStApply" checked> Apply</label>
+          <label class="chk chk-sm chk-st-Maybe"><input type="checkbox" id="showStMaybe" checked> Maybe</label>
+          <label class="chk chk-sm chk-st-Applied"><input type="checkbox" id="showStApplied" checked> Applied</label>
+          <label class="chk chk-sm chk-st-Skip"><input type="checkbox" id="showStSkip"> Skip</label>
+        </span>
+        <select id="roleKind" title="Filter by role family (title-based)">
+          <option value="">All role types</option>
+        </select>
+        <select id="sort">
+          <option value="fit">Sort: best fit</option>
+          <option value="stars">Sort: my stars (5 first)</option>
+          <option value="pay">Sort: highest pay</option>
+          <option value="new">Sort: newest</option>
+          <option value="group">Sort: group</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="starredOnly"> Starred</label>
+        <label class="chk" title="Closed = posting not accepting applications (dead link or filled). Conflicts = high travel, SKIP fit, or Conflict mode — hidden so the default list stays viable."><input type="checkbox" id="showAll"> Closed / conflicts</label>
+        <select id="refreshMode" title="How hard to search">
+          <option value="light">Update: check links + remove wrong locations (~1 min)</option>
+          <option value="companies" selected>Search: your employers (~3–5 min)</option>
+          <option value="deep">Deep search: wider net (~10 min max)</option>
+        </select>
+        <button id="refreshBoard" type="button" title="Run the selected update or search">Run search</button>
+      </div>
+    </div>
+    <div id="list"></div>
+  </section>
+  <aside id="chat">
+    <div id="chatHead"><b>Assistant</b><button type="button" id="resumeBtn" title="Upload your resume (Word or PDF)">Upload resume</button><input type="file" id="resumeFile" accept=".docx,.pdf,.txt,.md,.rtf" style="display:none"><button type="button" id="stopBtn" disabled title="Stop the assistant mid-reply">Stop</button></div>
+    <div id="banner" style="display:none"></div>
+    <div id="msgs"></div>
+    <div id="inputRow"><textarea id="inp" placeholder="Message… Enter to send. Send again while busy to steer." aria-label="Message to assistant. Enter sends. Send again while busy to steer. Shift+Enter for new line."></textarea><button class="primary" id="sendBtn">Send</button></div>
+  </aside>
+</main>
+<div id="toast"></div>
+<script>
+const FITS=["STRONG","GOOD","MEDIUM","CHECK","REACH","SKIP"];
+const STATUSES=["Apply","Maybe","Skip","Applied"];
+const $=(s)=>document.querySelector(s);
+const esc=(s)=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let data={updated:"",leads:[]}, state={items:{},lastVisit:null}, prevVisit=null, F={mode:"All",fit:"All"}, openIds=new Set(), flashIds=new Set(), ver={leads:0,state:0}, chatReady=false;
+
+function payMax(p){let m=0;for(const x of String(p).matchAll(/\$([\d,.]+)\s*(K|k)?/g)){let v=parseFloat(x[1].replace(/,/g,""));if(x[2])v*=1000;if(v>m)m=v}return m}
+const stOf=(id)=>(state.items[id]&&state.items[id].status)||"";
+const noteOf=(id)=>(state.items[id]&&state.items[id].note)||"";
+const starOf=(id)=>{const it=state.items[id];if(!it)return null;let n=it.stars;if(n!==undefined&&n!==null&&n!==""){n=Number(n);if(Number.isFinite(n)&&n>=1&&n<=5)return n}if(it.rank!=null&&it.rank!==""){const r=Number(it.rank);if(r>=1&&r<=5)return 6-r}return null};
+function starsHtml(n){return "★".repeat(n)+"☆".repeat(5-n)}
+function starPicker(id,cur){
+  let h=`<span class="stars" data-no-toggle="1">`;
+  for(let i=1;i<=5;i++)h+=`<button type="button" class="star-btn ${cur!=null&&i<=cur?"on":""}" data-star="${i}" data-id="${esc(id)}" title="${i} star${i>1?"s":""}" aria-label="${i} stars">★</button>`;
+  h+=`</span>`;
+  if(cur!=null)h+=` <button type="button" class="star-clear" data-star-clear data-id="${esc(id)}">Clear stars</button>`;
+  return h;
+}
+function notePreview(id){const n=noteOf(id).trim();if(!n)return "";return n.length>100?n.slice(0,100)+"…":n}
+const isNew=(l)=>prevVisit&&l.added&&l.added>prevVisit;
+function metaLine(l){
+  const parts=[];
+  if(l.posted)parts.push("Company posted: "+l.posted);
+  if(l.where)parts.push(l.where);
+  return parts.join(" · ");
+}
+function toast(t){const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",3500)}
+let roleFamilies=[];
+function roleCategory(role){
+  const t=String(role||"");
+  for(const f of roleFamilies){
+    try{if(new RegExp(f.pattern,"i").test(t))return f.id}catch{}
+  }
+  return "other";
+}
+async function loadConfig(){
+  try{
+    const c=await api("/api/config");
+    window.boardConfig=c;
+    if(!c.configured){const o=$("#nameOverlay");if(o){o.style.display="flex";setTimeout(()=>{const i=$("#nameIn");if(i)i.focus()},60)}}
+    const ub=$("#updBtn");if(ub)ub.style.display=c.canUpdate?"":"none";
+    const pb=$("#pubBtn");if(pb)pb.style.display=c.canPublish?"":"none";
+    const nm=c.firstName?(c.firstName+"'s Job Board"):"Job Board";
+    const h=$("#boardTitle");if(h)h.textContent=nm;
+    document.title=nm;
+    roleFamilies=Array.isArray(c.roleFamilies)?c.roleFamilies:[];
+    const sel=$("#roleKind");
+    if(sel){
+      const cur=sel.value;
+      sel.innerHTML='<option value="">All role types</option>'+roleFamilies.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.label||f.id)+'</option>').join("")+(roleFamilies.length?'<option value="other">Other</option>':"");
+      sel.value=cur;
+      sel.style.display=roleFamilies.length?"":"none";
+    }
+  }catch{}
+}
+function updateActivity(v){
+  const el=$("#activityTicker");if(!el||!v)return;
+  const working=!!(v.refreshBusy||v.busy);
+  let msg=String(v.activity||"").trim();
+  if(working&&(msg==="Ready"||!msg))msg=v.refreshBusy?"Refresh & search in progress…":"Assistant working…";
+  if(working){
+    el.className="activity-ticker active";
+    el.textContent=msg;
+    el.title=msg;
+    return;
+  }
+  el.className="activity-ticker idle";
+  const idle=msg&&msg!=="Ready"?msg:"Idle — nothing running";
+  el.textContent=idle;
+  el.title=idle;
+}
+function updateStopButton(){
+  const el=$("#stopBtn");if(!el)return;
+  const live=!!(sending||(ver&&ver.busy));
+  el.disabled=!live;
+}
+
+async function api(path,opt){const r=await fetch(path,opt);return r.json()}
+async function loadAll(first){
+  const [d,s,v]=await Promise.all([api("/api/leads"),api("/api/state"),api("/api/version")]);
+  if(first){prevVisit=s.lastVisit;api("/api/state",{method:"POST",body:JSON.stringify({lastVisit:new Date().toISOString().slice(0,10)})})}
+  else{const old=new Map(data.leads.map(l=>[l.id,JSON.stringify(l)]));for(const l of d.leads){if(old.get(l.id)!==JSON.stringify(l))flashIds.add(l.id)}}
+  data=d;state=s;ver=v;chatReady=v.chatReady;updateActivity(v);updateStopButton();setupServerWarn(v);render();setupBanner();
+}
+function setupServerWarn(v){
+  const el=$("#serverWarn");if(!el)return;
+  if(v&&v.boardApi>=3){el.style.display="none";return}
+  el.style.display="block";
+  el.innerHTML="<b>Job Board server needs a restart</b>Run search and some other buttons need the latest server. Close the black <strong>Job Board</strong> command window, then double-click <strong>Restart-Job-Board.bat</strong> in the Job-Board-App folder (or Start-Job-Board.bat after closing the old window). Then refresh this page.";
+}
+function statusFilterOn(st){
+  const key=st||"none";
+  const id={none:"showStNone",Apply:"showStApply",Maybe:"showStMaybe",Skip:"showStSkip",Applied:"showStApplied"}[key];
+  const el=id?document.getElementById(id):null;
+  return el?el.checked:true;
+}
+function visible(){
+  const q=$("#q").value.trim().toLowerCase();
+  return data.leads.filter(l=>{
+    const st=stOf(l.id);
+    if(!statusFilterOn(st))return false;
+    const conflict=l.mode==="Conflict"||l.closed||l.fit==="SKIP";
+    if(!$("#showAll").checked&&conflict&&st!=="Apply"&&st!=="Maybe")return false;
+    if(F.mode!=="All"&&l.mode!==F.mode)return false;
+    if(F.fit!=="All"&&l.fit!==F.fit)return false;
+    if($("#group").value&&l.group!==$("#group").value)return false;
+    if($("#starredOnly").checked&&starOf(l.id)==null)return false;
+    const rk=$("#roleKind").value;
+    if(rk&&roleCategory(l.role)!==rk)return false;
+    if(q&&!(l.role+" "+l.where+" "+l.why+" "+l.group+" "+noteOf(l.id)).toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+function sorted(a){
+  const s=$("#sort").value;const fo=(l)=>FITS.indexOf(l.fit);
+  if(s==="stars")return a.slice().sort((x,y)=>{const sx=starOf(x.id),sy=starOf(y.id);if(sx!=null&&sy!=null)return sy-sx||fo(x)-fo(y);if(sx!=null)return -1;if(sy!=null)return 1;return fo(x)-fo(y)});
+  return a.slice().sort((x,y)=>s==="pay"?payMax(y.pay)-payMax(x.pay):s==="new"?(y.added||"").localeCompare(x.added||"")||fo(x)-fo(y):s==="group"?x.group.localeCompare(y.group)||fo(x)-fo(y):fo(x)-fo(y));
+}
+let pendingRender=false;
+document.addEventListener("focusout",()=>{if(pendingRender){pendingRender=false;setTimeout(render,50)}});
+function render(){
+  const ae=document.activeElement;
+  if(ae&&ae.dataset&&ae.dataset.note&&ae.tagName==="TEXTAREA"){pendingRender=true;return}
+  const rows=sorted(visible());
+  const hidden=data.leads.length-rows.length;
+  $("#upd").textContent="Updated "+(data.updated||"")+" · Showing "+rows.length+" of "+data.leads.length+" on board"+(hidden?(" ("+hidden+" hidden — status filters & Closed / conflicts)"):"")+(data.warning?" · WARNING: "+data.warning:"");
+  const c={Apply:0,Maybe:0,Skip:0,Applied:0,"":0};rows.forEach(l=>c[stOf(l.id)]++);
+  const starred=rows.filter(l=>starOf(l.id)!=null).length;
+  const nw=rows.filter(isNew).length;
+  $("#counts").innerHTML=[["Apply",c.Apply],["Maybe",c.Maybe],["Applied",c.Applied],["Skip",c.Skip],["Not reviewed",c[""]],["Starred",starred]].map(([n,v])=>`<span class="count" title="Counts match the list you see below"><b>${v}</b> ${n}</span>`).join("")+(nw?`<span class="count"><b>${nw}</b> new here</span>`:"");
+  const groups=[...new Set(data.leads.map(l=>l.group))];
+  const g=$("#group"),gv=g.value;g.innerHTML=`<option value="">All groups</option>`+groups.map(x=>`<option>${esc(x)}</option>`).join("");g.value=gv;
+  $("#modeChips").innerHTML=["All","Remote","Local"].map(m=>`<button data-mode="${m}" class="${F.mode===m?"on":""}">${m}</button>`).join("");
+  $("#fitChips").innerHTML=["All",...FITS.slice(0,5)].map(m=>`<button data-fit="${m}" class="${F.fit===m?"on":""}">${m==="All"?"All fits":m}</button>`).join("");
+  if(!rows.length){$("#list").innerHTML=`<div class="empty">No roles match these filters.</div>`;return}
+  const showGroups=$("#sort").value==="group";let last="",html="";
+  for(const l of rows){
+    if(showGroups&&l.group!==last){html+=`<div class="group-h">${esc(l.group)}</div>`;last=l.group}
+    const st=stOf(l.id),stn=starOf(l.id),np=notePreview(l.id),open=openIds.has(l.id);
+    const stClass=st?` st-${st}`:"";
+    html+=`<div class="card ${open?"open":""} ${l.closed?"closed":""}${stClass} ${flashIds.has(l.id)?"flash":""}" data-id="${esc(l.id)}">
+      <div class="head" data-toggle="${esc(l.id)}">
+        <div><div class="title">${stn!=null?`<span class="star-title" title="Your ${stn}-star rating">${starsHtml(stn)}</span>`:""}${esc(l.role)}</div><div class="meta">${esc(metaLine(l))}</div>
+          ${np?`<div class="note-prev">Your note: ${esc(np)}</div>`:""}
+          <div class="badges"><span class="badge f-${esc(l.fit)}">${esc(l.fit)}${esc(l.fitNote||"")}</span><span class="badge">${esc(l.mode)}</span><span class="badge">${esc(l.group)}</span>${isNew(l)?'<span class="badge new">NEW</span>':""}${l.closed?'<span class="badge closed">CLOSED</span>':""}</div></div>
+        <div class="stat"><span class="pay">${esc(l.pay)}</span><span class="st ${esc(st)}">${esc(st)}</span></div>
+      </div>
+      <div class="body">
+        <p class="why">${esc(l.why)}</p>
+        <div class="sect" data-no-toggle="1">
+          <div class="sect-h">Your star rating</div>
+          <div class="row">${starPicker(l.id,stn)}<span class="sub">5 = top pick · saved on this PC</span></div>
+        </div>
+        <div class="sect">
+          <div class="sect-h">Decision &amp; notes</div>
+          <div class="row">${STATUSES.map(s=>`<button type="button" data-set="${s}" data-id="${esc(l.id)}" class="${st===s?"on":""}">${s}</button>`).join("")}${st?`<button type="button" data-set="" data-id="${esc(l.id)}">Clear status</button>`:""}
+          ${l.url?`<a href="${esc(l.url)}" target="_blank" rel="noopener">Open posting ↗</a>`:""}</div>
+          <textarea data-note="${esc(l.id)}" placeholder="Your notes — you and the assistant both use these">${esc(noteOf(l.id))}</textarea>
+        </div>
+        <div class="sect sect-app">
+          <div class="sect-h">Application files</div>
+          ${state.items[l.id]&&state.items[l.id].applicationFolder?`<p class="sub">Folder: <code>03_Applications\\${esc(state.items[l.id].applicationFolder)}</code></p>`:""}
+          <div class="row row-actions">
+            <button type="button" data-start-app data-id="${esc(l.id)}">Start application package</button>
+            <button type="button" data-ask="draft" data-id="${esc(l.id)}">Draft resume &amp; cover letter</button>
+          </div>
+          <p class="sub" style="margin:8px 0 0">Package = folder on disk. Draft sends a prompt to the chat panel (needs API key once).</p>
+        </div>
+      </div></div>`;
+  }
+  $("#list").innerHTML=html;
+  setTimeout(()=>{flashIds.clear()},4000);
+}
+async function patch(id,p){state.items[id]={...(state.items[id]||{}),...p};await api("/api/state",{method:"POST",body:JSON.stringify({id,patch:p})})}
+
+document.addEventListener("click",async(e)=>{
+  if(e.target.closest("[data-no-toggle]"))e.stopPropagation();
+  const t=e.target.closest("[data-toggle],[data-set],[data-ask],[data-mode],[data-fit],[data-start-app],[data-star],[data-star-clear]");if(!t)return;
+  if(t.dataset.starClear){await patch(t.dataset.id,{stars:null,rank:null});render();return}
+  if(t.dataset.star){const id=t.dataset.id,n=Number(t.dataset.star),cur=starOf(id);await patch(id,{stars:cur===n?null:n,rank:null});render();return}
+  if(t.dataset.mode){F.mode=t.dataset.mode;render()}
+  else if(t.dataset.fit){F.fit=t.dataset.fit;render()}
+  else if(t.dataset.set!==undefined){await patch(t.dataset.id,{status:t.dataset.set});render()}
+  else if(t.dataset.startApp){
+    const id=t.dataset.id;
+    try{
+      const r=await api("/api/start-application",{method:"POST",body:JSON.stringify({id})});
+      if(r.error){toast(r.error);return}
+      await loadAll(false);
+      toast("Folder created — marked Apply");
+      const l=data.leads.find(x=>x.id===id);
+      if(l&&chatReady){ask("draft",l)}
+      else if(l){$("#chat").classList.remove("hidden");add("s","Application folder created. Turn on the assistant (or use Cursor chat) and click Draft resume & cover letter.")}
+    }catch(err){toast("Could not create folder — restart Job Board once")}
+  }
+  else if(t.dataset.ask){const l=data.leads.find(x=>x.id===t.dataset.id);ask(t.dataset.ask,l)}
+  else if(t.dataset.toggle){const id=t.dataset.toggle;openIds.has(id)?openIds.delete(id):openIds.add(id);render()}
+});
+document.addEventListener("input",(e)=>{
+  if(e.target.dataset&&e.target.dataset.note){const id=e.target.dataset.note,v=e.target.value;clearTimeout(e.target._t);e.target._t=setTimeout(()=>patch(id,{note:v}),500)}
+});
+["q","group","sort","showAll","starredOnly","roleKind","showStNone","showStApply","showStMaybe","showStApplied","showStSkip"].forEach(i=>{const el=document.getElementById(i);if(el)el.addEventListener("change",render)});
+$("#refreshBoard").onclick=async()=>{
+  const btn=$("#refreshBoard");if(btn.disabled)return;
+  btn.disabled=true;
+  const mode=$("#refreshMode").value;
+  const modeLabel=mode==="light"?"link check":mode==="deep"?"deep search":"company search";
+  updateActivity({refreshBusy:true,busy:false,activity:"Starting "+modeLabel+"…"});
+  toast(mode==="light"?"Checking saved posting links…":mode==="deep"?"Deep search (up to ~10 min) — watch the status bar…":"Searching your employers…");
+  try{
+    const r=await fetch("/api/refresh-board",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode})});
+    const j=await r.json();
+    if(!r.ok){
+      const msg=r.status===404?(j.help||"Server out of date — run Restart-Job-Board.bat, then reload this page."):(j.error||j.help||"Search failed.");
+      toast(msg);
+      if(r.status===404)setupServerWarn({});
+      return;
+    }
+    await loadAll(false);
+    toast(j.summary||"Refresh done");
+    if(j.added&&j.added.length)add("s","New on board: "+j.added.slice(0,5).join("; ")+(j.added.length>5?" …":""));
+  }catch(e){toast("Refresh failed — restart Job Board once, then try again")}
+  finally{btn.disabled=false;updateActivity({refreshBusy:false,busy:false,activity:"Ready"})}
+};
+$("#toggleChat").onclick=()=>{const c=$("#chat");c.classList.toggle("hidden");$("#toggleChat").textContent=c.classList.contains("hidden")?"Show assistant":"Hide assistant"};
+
+function ask(kind,l){
+  const base=`The role is "${l.role}" (${l.where}). Board id: ${l.id}. Posting: ${l.url||"no link saved"}.`;
+  const q={more:`Tell me more about this role and how well I fit it, honestly. ${base}`,
+    "still-open":`Check whether this posting is still open and tell me anything new. Update the board if it changed. ${base}`,
+    draft:`Draft a tailored resume and cover letter for this role from my master resume. Use the application folder in 03_Applications if it exists (or create it). Ask me about any gaps. Keep it honest (flag anything TO CONFIRM). ${base}`,
+    gaps:`What detail is missing from my resume for this role? Tell me what to add, and ask me the questions you need. ${base}`}[kind];
+  $("#chat").classList.remove("hidden");$("#toggleChat").textContent="Hide assistant";send(q);
+}
+
+/* ---- chat ---- */
+const msgs=$("#msgs");let sending=false,sendGeneration=0,chatAbort=null;
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function md(s){
+  const inline=(t)=>esc(t).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/`([^`]+)`/g,"<code>$1</code>").replace(/(https?:\/\/[^\s<)]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+  let out="",inList=false;
+  for(const line of String(s).split("\n")){
+    const m=line.match(/^\s*[-*] (.+)/);
+    const hd=line.match(/^\s*#{1,4}\s+(.+)/);
+    if(hd){if(inList){out+="</ul>";inList=false}out+="<b>"+inline(hd[1])+"</b><br>"}
+    else if(m){if(!inList){out+="<ul>";inList=true}out+="<li>"+inline(m[1])+"</li>"}
+    else{if(inList){out+="</ul>";inList=false}out+=inline(line)+"<br>"}
+  }
+  return out+(inList?"</ul>":"");
+}
+function add(cls,text){const d=document.createElement("div");d.className="m "+cls;d.textContent=text;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d}
+function setupBanner(){
+  const b=$("#banner");
+  if(chatReady){b.style.display="none";b.dataset.built="";return}
+  b.style.display="block";if(b.dataset.built)return;b.dataset.built="1";
+  b.innerHTML=`<b>Turn on the assistant (one time, about 2 minutes)</b>
+   <ol style="margin:6px 0 6px 18px;padding:0">
+    <li><a href="https://cursor.com/dashboard/integrations" target="_blank" rel="noopener">Open the Cursor dashboard</a>, sign in, and create an API key. Copy it.</li>
+    <li>Paste it here, then press the button:<input type="password" id="keyIn" autocomplete="off" placeholder="Paste your key here" style="width:100%;margin:5px 0"><button class="primary" id="keyBtn">Test and turn on</button></li>
+   </ol><div id="keyMsg" class="sub">The key is saved only on this PC, in the .env file. The board works without it.</div>`;
+  $("#keyBtn").onclick=async()=>{
+    const key=$("#keyIn").value.trim(),m=$("#keyMsg");if(!key){m.textContent="Paste the key first.";return}
+    $("#keyBtn").disabled=true;m.textContent="Testing the key...";
+    try{const r=await fetch("/api/setup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key})});const j=await r.json();
+      if(r.ok){chatReady=true;setupBanner();toast("Assistant is on");add("s","The assistant is on. "+((window.boardConfig&&window.boardConfig.resumeUploaded)?"Type a question or use Draft on a role card.":"Next, press Upload resume (top of this panel) so we can get started."))}
+      else{m.textContent=j.error||"That did not work.";$("#keyBtn").disabled=false}
+    }catch(e){m.textContent="Lost connection to the board: "+e.message;$("#keyBtn").disabled=false}
+  };
+}
+async function send(text,opts={}){
+  text=(text||$("#inp").value).trim();if(!text)return;
+  if(sending&&!opts.afterSteer){
+    $("#inp").value="";
+    add("u",text);
+    add("s","Steering — using your new message…");
+    try{chatAbort&&chatAbort.abort()}catch{}
+    await api("/api/chat/stop",{method:"POST"});
+    for(let i=0;i<30;i++){
+      const v=await api("/api/version");
+      if(!v.busy){await send(text,{afterSteer:true,steer:true});return}
+      await sleep(150);
+    }
+    add("e","Still busy — press Stop, wait a moment, then send again.");
+    return;
+  }
+  if(!opts.afterSteer){$("#inp").value="";add("u",text)}
+  const gen=++sendGeneration;
+  sending=true;
+  chatAbort=new AbortController();
+  updateActivity({refreshBusy:false,busy:true,activity:"Assistant working on your message…"});
+  updateStopButton();
+  let cur=null,raw="";const status=add("s","Working...");
+  try{
+    const r=await fetch("/api/chat",{method:"POST",signal:chatAbort.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({message:text,steer:!!opts.steer})});
+    if(!r.ok){const j=await r.json().catch(()=>({}));status.remove();add("e",j.help||j.error||"Something went wrong.");return}
+    const rd=r.body.getReader(),dec=new TextDecoder();let buf="";
+    for(;;){
+      const {value,done}=await rd.read();
+      if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      let i;while((i=buf.indexOf("\n\n"))>=0){const blk=buf.slice(0,i);buf=buf.slice(i+2);
+        const ev=(blk.match(/^event: (.*)$/m)||[])[1],dt=JSON.parse((blk.match(/^data: (.*)$/m)||[,"{}"])[1]);
+        if(ev==="text"){if(!cur){cur=add("a","");raw=""}raw+=dt.text;cur.innerHTML=md(raw);msgs.scrollTop=msgs.scrollHeight}
+        else if(ev==="tool"){const tn=String(dt.name||"tool").replace(/_/g," ");status.textContent="Working: "+tn+"…";updateActivity({refreshBusy:false,busy:true,activity:"Assistant: "+tn+"…"});cur=null}
+        else if(ev==="error"){add("e",dt.message)}
+        else if(ev==="done"){status.remove()}}
+    }
+  }catch(e){
+    if(e&&e.name==="AbortError"){
+      status.remove();
+      if(gen===sendGeneration)add("s","Stopped — ready for your next message.");
+    }else add("e","Lost connection to the board: "+(e.message||e));
+  }
+  finally{
+    status.remove();
+    if(gen===sendGeneration){
+      sending=false;
+      chatAbort=null;
+      updateStopButton();
+      loadAll(false);
+    }
+  }
+}
+$("#sendBtn").onclick=()=>send();
+$("#inp").addEventListener("keydown",(e)=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+$("#stopBtn").onclick=async()=>{
+  if($("#stopBtn").disabled)return;
+  try{chatAbort&&chatAbort.abort()}catch{}
+  await api("/api/chat/stop",{method:"POST"});
+  add("s","Stopped.");
+  updateStopButton();
+};
+const WELCOME="Ask me to search for roles, update the board, or draft a resume. Send again while I’m working to steer. Refresh & search runs automated link checks on the board.";
+/* Chat history is saved on the server (chat-history.jsonl) and shown again every time the page opens. */
+async function loadChatHistory(){
+  try{
+    const h=await api("/api/chat/history?limit=300");
+    const list=h.entries||[];
+    if(!list.length){add("s",WELCOME);return}
+    if(h.total>list.length)add("s","Showing the most recent "+list.length+" of "+h.total+" messages. The full history is saved in chat-history.jsonl.");
+    let lastDay="";
+    for(const e of list){
+      const d=new Date(e.t);const day=isNaN(d)?"":d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+      if(day&&day!==lastDay){add("s",day);lastDay=day}
+      if(e.role==="user")add("u",e.text);
+      else{const el=add("a","");el.innerHTML=md(e.text)}
+    }
+    add("s","Earlier conversation above. "+WELCOME);
+  }catch{add("s",WELCOME)}
+  msgs.scrollTop=msgs.scrollHeight;
+}
+loadChatHistory();
+
+/* live updates + fast activity ticker while refresh or assistant is busy */
+async function activityLoop(){
+  try{
+    const v=await api("/api/version");
+    chatReady=v.chatReady;
+    updateActivity(v);
+    if(v.leads!==ver.leads){await loadAll(false);toast("Board updated")}
+    else{ver=v;updateStopButton()}
+  }catch{}
+  const ms=(ver.refreshBusy||ver.busy)?400:2000;
+  setTimeout(activityLoop,ms);
+}
+/* ---- first run: name ---- */
+$("#nameBtn").onclick=async()=>{
+  const v=$("#nameIn").value.trim();if(!v){$("#nameMsg").textContent="Please type your name.";return}
+  $("#nameBtn").disabled=true;
+  try{
+    const r=await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fullName:v})});
+    if(!r.ok){const j=await r.json().catch(()=>({}));$("#nameMsg").textContent=j.error||"That did not work.";$("#nameBtn").disabled=false;return}
+    $("#nameOverlay").style.display="none";
+    await loadConfig();
+    msgs.innerHTML="";await loadChatHistory();
+  }catch(e){$("#nameMsg").textContent="Lost connection to the board: "+e.message;$("#nameBtn").disabled=false}
+};
+$("#nameIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#nameBtn").click()});
+
+/* ---- resume upload ---- */
+$("#resumeBtn").onclick=()=>$("#resumeFile").click();
+$("#resumeFile").onchange=async(e)=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  if(f.size>20e6){toast("That file is too big (over 20 MB).");return}
+  toast("Reading your resume...");
+  let data;
+  try{data=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]||"");r.onerror=()=>no(new Error("could not read the file"));r.readAsDataURL(f)})}
+  catch(err){add("e","Could not read that file: "+err.message);return}
+  let j={};let ok=false;
+  try{const r=await fetch("/api/upload-resume",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:f.name,data})});ok=r.ok;j=await r.json().catch(()=>({}))}
+  catch(err){add("e","Upload failed: "+err.message);return}
+  if(!ok){add("e",j.error||"Upload failed.");return}
+  add("s","Resume saved ("+j.chars+" characters read). "+(j.warning||""));
+  const c=window.boardConfig||{};
+  if(chatReady&&!j.warning){
+    send(c.profileReady?"I uploaded an updated resume. Please compare it with my profile files, tell me what changed, and ask me to confirm any updates before you save them.":"I just uploaded my resume. Please read it and start the get-to-know-you interview.");
+  }else if(!chatReady){add("s","Next, turn the assistant on using the setup box above. Then tell me you are ready and we will start.")}
+  loadConfig();
+};
+
+/* ---- updates (installed boards) and publishing (builder's board) ---- */
+const upd={go:null};
+function updShow(title,msg,opts={}){
+  $("#updPanel").style.display="flex";$("#updTitle").textContent=title;$("#updMsg").innerHTML=msg;
+  $("#updExtra").innerHTML=opts.extra||"";
+  const bar=$("#updBar");bar.style.display=opts.pct!=null?"block":"none";if(opts.pct!=null)$("#updBarIn").style.width=opts.pct+"%";
+  const g=$("#updGo");if(opts.go){g.style.display="";g.textContent=opts.go.label;g.disabled=false;upd.go=opts.go.fn}else{g.style.display="none";upd.go=null}
+  $("#updClose").disabled=!!opts.busy;
+}
+$("#updClose").onclick=()=>{$("#updPanel").style.display="none"};
+$("#updGo").onclick=()=>{if(upd.go){$("#updGo").disabled=true;upd.go()}};
+async function waitForRestart(){await sleep(2500);for(let i=0;i<90;i++){try{const v=await api("/api/version");if(v&&v.appVersion)return}catch{}await sleep(1000)}}
+async function installUpdate(){
+  updShow("Updating","Starting...",{pct:3,busy:true});
+  const p=fetch("/api/update/apply",{method:"POST"}).then(r=>r.json()).catch(()=>({error:"Lost connection to the board."}));
+  const t=setInterval(async()=>{try{const s=await api("/api/update/status");if(s.working)updShow("Updating",esc(s.message||"Working..."),{pct:s.pct||5,busy:true})}catch{}},700);
+  const r=await p;clearInterval(t);
+  if(r.error){updShow("Update not installed",esc(r.error)+"<br><br><b>Your board was not changed.</b>");return}
+  if(r.upToDate){updShow("Up to date","You already have the latest version.");return}
+  updShow("Restarting","Version "+esc(r.to)+" is installed. Restarting the board... this page will reload by itself.",{pct:98,busy:true});
+  await waitForRestart();location.reload();
+}
+$("#updBtn").onclick=async()=>{
+  updShow("Check for updates","Checking...",{busy:true});
+  const r=await api("/api/update/check").catch(()=>({error:"Lost connection to the board."}));
+  let last="";
+  if(r.last&&r.last.ok===false)last="<br><br><small>The last update attempt did not install: "+esc(r.last.error||"")+"</small>";
+  if(r.error){updShow("Check for updates",esc(r.error)+last);return}
+  if(!r.updateAvailable){updShow("Check for updates","You have the latest version (<b>"+esc(r.current)+"</b>)."+last);return}
+  updShow("Update available","A new version is available: <b>"+esc(r.latest)+"</b> (you have "+esc(r.current)+").<br>"+(r.notes?("<br><i>"+esc(r.notes)+"</i><br>"):"")+"<br>Your job leads, notes and chat history are backed up first and are never replaced. The new version is tested before it is installed.",{go:{label:"Install update",fn:installUpdate}});
+};
+$("#pubBtn").onclick=async()=>{
+  updShow("Publish update","Checking what would be sent...",{busy:true});
+  const r=await api("/api/publish/preview").catch(()=>({error:"Lost connection."}));
+  if(r.error){updShow("Publish update",esc(r.error));return}
+  if(r.blocked){
+    const rows=(r.findings||[]).slice(0,12).map(f=>"<li>"+esc(f.what)+" in <b>"+esc(f.file)+"</b> line "+f.line+"</li>").join("");
+    updShow("Blocked: personal information found","Nothing was sent. Fix these first:<ul>"+rows+"</ul>"+(r.missing&&r.missing.length?("Missing files: "+esc(r.missing.join(", "))):""));
+    return;
+  }
+  updShow("Publish update","This sends the program files (never your chats, leads, notes, key or profile) to <b>"+esc(r.repo)+"</b>.<br>Current published version: <b>"+esc(r.current||"none")+"</b>. New version: <b>"+esc(r.next)+"</b>.<br>Files changed: "+(r.changed.length?esc(r.changed.join(", ")):"none")+".<br>Personal-information check: passed ("+r.termsChecked+" terms).",{extra:'<input id="pubNotes" placeholder="What changed? (short note shown to the other boards)" style="width:100%;margin-top:10px;padding:8px;box-sizing:border-box">',go:{label:"Publish "+r.next,fn:async()=>{
+    updShow("Publishing","Sending...",{pct:50,busy:true});
+    const notes=($("#pubNotes")||{}).value||"";
+    const j=await fetch("/api/publish",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({notes})}).then(x=>x.json()).catch(()=>({error:"Lost connection."}));
+    if(j.error)updShow("Not published",esc(j.error));else updShow("Published","Version <b>"+esc(j.version)+"</b> is published ("+j.files+" files). Other boards will see it when they press Check for updates.");
+  }}});
+  if(!r.changed.length&&false){}
+};
+activityLoop();
+loadConfig().then(()=>loadAll(true));
+</script>
+<div id="nameOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;align-items:center;justify-content:center">
+  <div style="background:#fff;color:#222;padding:26px;border-radius:12px;max-width:440px;width:92%;font-size:16px;line-height:1.4">
+    <h2 style="margin:0 0 8px;color:#222">Welcome!</h2>
+    <p style="margin:0 0 12px">What is your name? It is used for the heading of your board and so the assistant knows what to call you.</p>
+    <input id="nameIn" type="text" placeholder="Your name" autocomplete="off" style="width:100%;padding:10px;font-size:16px;box-sizing:border-box;margin-bottom:10px">
+    <button class="primary" id="nameBtn" type="button" style="padding:10px 18px;font-size:16px">Continue</button>
+    <div id="nameMsg" style="color:#b00;margin-top:8px;min-height:1em"></div>
+  </div>
+</div>
+<div id="updPanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;align-items:center;justify-content:center">
+  <div style="background:#fff;color:#222;padding:24px;border-radius:12px;max-width:520px;width:92%;font-size:15px;line-height:1.45">
+    <h2 id="updTitle" style="margin:0 0 8px;color:#222">Updates</h2>
+    <div id="updMsg"></div>
+    <div id="updBar" style="display:none;height:8px;background:#ddd;border-radius:4px;margin:10px 0"><div id="updBarIn" style="height:8px;width:0;background:#2a7;border-radius:4px"></div></div>
+    <div id="updExtra"></div>
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button id="updGo" class="primary" type="button" style="display:none"></button><button id="updClose" type="button">Close</button></div>
+  </div>
+</div>
+</body>
+</html>
