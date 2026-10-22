@@ -1,7 +1,7 @@
 {
-  "version": "1.0.1",
-  "notes": "Workday employer lookup fix.",
-  "publishedAt": "2026-10-22T22:38:33.770Z",
+  "version": "1.0.2",
+  "notes": "Show Check for updates on every installed board.",
+  "publishedAt": "2026-10-22T23:40:25.792Z",
   "package": {
     "dependencies": {
       "@cursor/sdk": "^1.0.40",
@@ -12,13 +12,13 @@
   "files": [
     {
       "path": "server.js",
-      "sha256": "82d2759634eaecdda2b55a83849c9dee5fb07499868e0f525d4415a283b06cde",
-      "size": 30259
+      "sha256": "9346894c33ae69a8f3bfe7adc8a98614f12c4a21473d260ec9eb80205839f269",
+      "size": 30416
     },
     {
       "path": "index.html",
-      "sha256": "9d78034d5604c814c746d827a39948bcfaca1e1909ef002f0d9dead6f10ef8a1",
-      "size": 46894
+      "sha256": "ecb1ddc096a3483e58410043b8aaee0173312db2b832eb2da3dead3d5ca8c9f5",
+      "size": 46940
     },
     {
       "path": "refresh-board-run.js",
@@ -57,7 +57,7 @@
     },
     {
       "path": "version.json",
-      "sha256": "016d503b212621b4282cc7849f95a0bdaff1a22e83f06ac14e35ac0a634c3ecf",
+      "sha256": "a41ff6840e941e6f5031bc6c63aea1a290bc8d4ad6b3d5c32342f47b9f8a32ad",
       "size": 42
     },
     {

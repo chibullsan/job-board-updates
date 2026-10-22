@@ -19,6 +19,10 @@ const F = {
   instrTemplate: path.join(APP, "AGENT-INSTRUCTIONS.template.md"), instrExtra: path.join(DATA, "assistant-notes.md"),
   session: path.join(DATA, "chat-session.json"), config: path.join(DATA, "config.json"), profile: path.join(DATA, "search-profile.json"),
 };
+function updatesEnabled() {
+  if (process.env.JB_CAN_UPDATE === "1") return true;
+  try { return fs.existsSync(path.join(APP, "update-config.json")); } catch { return false; }
+}
 const { runRefresh } = require("./refresh-board-run.js");
 const { extractText } = require("./resume-extract.js");
 const updater = require("./updater.js");
@@ -437,7 +441,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/state") return send(res, 200, readJSON(F.state, { items: {}, lastVisit: null }));
     if (req.method === "GET" && url.pathname === "/api/config") {
       const c = getConfig(); const p = readJSON(F.profile, null);
-      return send(res, 200, { fullName: c.fullName, firstName: c.firstName, configured: !!c.firstName, profileReady: !!(p && p.ready), resumeUploaded: fs.existsSync(path.join(ROOT, "01_Profile-Builder", "Resume-Text.md")), canUpdate: process.env.JB_CAN_UPDATE === "1", canPublish: !!(publisher && publisher.pubConfig(DATA)), roleFamilies: (p && Array.isArray(p.roleFamilies)) ? p.roleFamilies : [], version: readJSON(path.join(APP, "version.json"), { version: "dev" }).version });
+      return send(res, 200, { fullName: c.fullName, firstName: c.firstName, configured: !!c.firstName, profileReady: !!(p && p.ready), resumeUploaded: fs.existsSync(path.join(ROOT, "01_Profile-Builder", "Resume-Text.md")), canUpdate: updatesEnabled(), canPublish: !!(publisher && publisher.pubConfig(DATA)), roleFamilies: (p && Array.isArray(p.roleFamilies)) ? p.roleFamilies : [], version: readJSON(path.join(APP, "version.json"), { version: "dev" }).version });
     }
     if (req.method === "POST" && url.pathname === "/api/config") {
       const b = await readBody(req);
@@ -493,12 +497,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/setup") return await setupKey(req, res);
     if (req.method === "POST" && url.pathname === "/api/upload-resume") return await uploadResume(req, res);
     if (req.method === "GET" && url.pathname === "/api/update/check") {
-      try { return send(res, 200, { ...(await updater.checkForUpdate(upCtx())), last: updater.lastResult(upCtx()), canUpdate: process.env.JB_CAN_UPDATE === "1" }); }
-      catch (e) { return send(res, 200, { error: "Could not check for updates: " + String((e && e.message) || e), current: updater.localVersion(APP), last: updater.lastResult(upCtx()) }); }
+      try { return send(res, 200, { ...(await updater.checkForUpdate(upCtx())), last: updater.lastResult(upCtx()), canUpdate: updatesEnabled() }); }
+      catch (e) { return send(res, 200, { error: "Could not check for updates: " + String((e && e.message) || e), current: updater.localVersion(APP), last: updater.lastResult(upCtx()), canUpdate: updatesEnabled() }); }
     }
     if (req.method === "GET" && url.pathname === "/api/update/status") return send(res, 200, { ...updater.getProgress(), last: updater.lastResult(upCtx()) });
     if (req.method === "POST" && url.pathname === "/api/update/apply") {
-      if (process.env.JB_CAN_UPDATE !== "1") return send(res, 400, { error: "Updating is only available in the installed Job Board (started with Start Job Board.bat)." });
+      if (!updatesEnabled()) return send(res, 400, { error: "Updating is only available in the installed Job Board (started with Start Job Board.bat)." });
       if (busy || refreshBusy) return send(res, 409, { error: "The assistant or a search is busy. Wait for it to finish, then update." });
       try {
         const r = await updater.applyUpdate(upCtx());
