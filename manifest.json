@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "notes": "First release: setup, resume upload, interview, search, updates.",
-  "publishedAt": "2026-10-22T22:12:47.968Z",
+  "version": "1.0.1",
+  "notes": "Workday employer lookup fix.",
+  "publishedAt": "2026-10-22T22:38:33.770Z",
   "package": {
     "dependencies": {
       "@cursor/sdk": "^1.0.40",
@@ -32,8 +32,8 @@
     },
     {
       "path": "probe-sources.js",
-      "sha256": "51ba337514644509c001a5bf3ce38b579c54fe3f6cc068d949b877f7010b416c",
-      "size": 3925
+      "sha256": "1e5724408bdae791a187efb01f9e14c611bf6e8c49fc58ab7e2847257778ba3d",
+      "size": 3903
     },
     {
       "path": "updater.js",
@@ -57,7 +57,7 @@
     },
     {
       "path": "version.json",
-      "sha256": "026ea81bd62a734ed47ce992b35c78abbe7c92b9e232f12605e1c9b0c11869a9",
+      "sha256": "016d503b212621b4282cc7849f95a0bdaff1a22e83f06ac14e35ac0a634c3ecf",
       "size": 42
     },
     {

@@ -48,7 +48,7 @@ async function tryWorkday(url) {
   if (!m) return { error: "That does not look like a Workday posting address (it should contain myworkdayjobs.com)." };
   const host = m[1], site = m[2];
   const payload = JSON.stringify({ appliedFacets: {}, limit: 1, offset: 0, searchText: "" });
-  const r = await get(`https://${host}/wday/cxs/${host.split(".")[0]}/${site}/jobs`, { method: "POST", headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) }, body: payload });
+  const r = await get(`https://${host}/wday/cxs/${site}/jobs`, { method: "POST", headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(payload) }, body: payload });
   let total = null;
   try { total = JSON.parse(r.body).total; } catch {}
   return { kind: "workday", host, site, works: r.status === 200, openJobs: total, profileEntry: { label: host.split(".")[0], host, site, group: "", scope: "local" } };
