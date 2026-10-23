@@ -24,7 +24,7 @@ function updatesEnabled() {
   try { return fs.existsSync(path.join(APP, "update-config.json")); } catch { return false; }
 }
 const { runRefresh } = require("./refresh-board-run.js");
-const { extractText } = require("./resume-extract.js");
+const { extractUpload } = require("./resume-extract.js");
 const updater = require("./updater.js");
 let publisher = null;
 try { publisher = require("./publisher.js"); } catch {}   // only exists on the builder's own board
@@ -181,26 +181,62 @@ function friendlyChatError(e) {
   return t.length > 220 ? t.slice(0, 220) + "…" : t;
 }
 
+function agentStoreDir() { return path.join(DATA, "agent-memory"); }
+let jsonlStore = null;
+function wipeAgentStores() {
+  jsonlStore = null;
+  try { fs.rmSync(agentStoreDir(), { recursive: true, force: true }); } catch {}
+  // Old installs kept a broken SQLite store next to the project. Leave chat-history.jsonl alone.
+  for (const dir of [path.join(ROOT, "sdk-agent-store"), path.join(DATA, "sdk-agent-store"), path.join(APP, "sdk-agent-store")]) {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+  }
+}
+function abandonOldAgentStore() {
+  const flag = path.join(agentStoreDir(), ".isolated");
+  if (fs.existsSync(flag)) return;
+  try { fs.unlinkSync(F.session); } catch {}
+  fs.mkdirSync(agentStoreDir(), { recursive: true });
+  fs.writeFileSync(flag, new Date().toISOString());
+}
+async function agentOpts() {
+  fs.mkdirSync(agentStoreDir(), { recursive: true });
+  if (!jsonlStore) {
+    const mod = await sdk();
+    if (typeof mod.JsonlLocalAgentStore === "function") jsonlStore = new mod.JsonlLocalAgentStore(agentStoreDir());
+  }
+  return { apiKey: process.env.CURSOR_API_KEY, model: MODEL(), local: { cwd: ROOT, stateRoot: agentStoreDir(), ...(jsonlStore ? { store: jsonlStore } : {}) } };
+}
+
 async function getAgent() {
   if (agent) return agent;
   const { Agent } = await sdk();
-  const opts = { apiKey: process.env.CURSOR_API_KEY, local: { cwd: ROOT }, model: MODEL() };
-  const saved = readJSON(F.session, null);
-  if (saved && saved.agentId) {
-    try { agent = await Agent.resume(saved.agentId, opts); firstTurn = false; return agent; }
-    catch (e) { try { fs.unlinkSync(F.session); } catch {} }
-  }
-  agent = await Agent.create(opts);
-  writeJSON(F.session, { agentId: agent.agentId, created: new Date().toISOString() });
-  firstTurn = true;
-  return agent;
+  const tryCreate = async () => {
+    const opts = await agentOpts();
+    const saved = readJSON(F.session, null);
+    if (saved && saved.agentId) {
+      try { agent = await Agent.resume(saved.agentId, opts); firstTurn = false; return agent; }
+      catch { try { fs.unlinkSync(F.session); } catch {} }
+    }
+    try {
+      agent = await Agent.create(opts);
+    } catch (e) {
+      if (!isDeadSession(e)) throw e;
+      wipeAgentStores();
+      try { fs.unlinkSync(F.session); } catch {}
+      agent = await Agent.create(await agentOpts());
+    }
+    writeJSON(F.session, { agentId: agent.agentId, created: new Date().toISOString() });
+    firstTurn = true;
+    return agent;
+  };
+  return tryCreate();
 }
 
 // Cancel any run on this agent that is still marked active (left over from a crash or closed window), keeping its memory.
 async function clearStaleRuns(agentId) {
   try {
     const { Agent } = await sdk();
-    const runs = await Agent.listRuns(agentId, { runtime: "local", cwd: ROOT, apiKey: process.env.CURSOR_API_KEY });
+    const runs = await Agent.listRuns(agentId, { runtime: "local", cwd: ROOT, apiKey: process.env.CURSOR_API_KEY, local: { cwd: ROOT, stateRoot: agentStoreDir() } });
     let n = 0;
     for (const r of runs.items || runs) {
       if (/running|active|pending|creating/i.test(String(r.status)) && r.supports && r.supports("cancel")) { try { await r.cancel(); n++; } catch {} }
@@ -224,6 +260,7 @@ async function resetChat() {
   try { if (agent) await agent[Symbol.asyncDispose]?.(); } catch {}
   agent = null; firstTurn = true;
   try { fs.unlinkSync(F.session); } catch {}
+  wipeAgentStores();
 }
 
 // ---- automatic chat log (so the Cursor chat can read what was said on the web page) ----
@@ -314,31 +351,39 @@ async function setupKey(req, res) {
   send(res, 200, { ok: true });
 }
 
-// ---- resume upload: save the original file, pull out its text for the assistant ----
+// ---- file upload: save originals, pull text when possible (resume, CV, certificates, pictures…) ----
 async function uploadResume(req, res) {
-  const b = await readBody(req, 30e6).catch(() => null);
-  if (!b || !b.filename || !b.data) return send(res, 400, { error: "No file received. Please try again." });
-  const orig = path.basename(String(b.filename)).replace(/[^\w .()\-]/g, "_").slice(0, 100) || "resume";
-  let buf;
-  try { buf = Buffer.from(String(b.data), "base64"); } catch { return send(res, 400, { error: "That file could not be read." }); }
-  if (!buf.length) return send(res, 400, { error: "That file is empty." });
-  let text;
-  try { text = await extractText(orig, buf); } catch (e) { return send(res, 400, { error: String((e && e.message) || e) }); }
+  const b = await readBody(req, 40e6).catch(() => null);
+  const incoming = b && Array.isArray(b.files) ? b.files : (b && b.filename && b.data ? [{ filename: b.filename, data: b.data }] : []);
+  if (!incoming.length) return send(res, 400, { error: "No file received. Please try again." });
+  if (incoming.length > 20) return send(res, 400, { error: "Please upload 20 files or fewer at a time." });
   const d = new Date(); const pad = (n) => String(n).padStart(2, "0");
   const ts = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "_" + pad(d.getHours()) + pad(d.getMinutes());
-  const keepDir = path.join(ROOT, "02_Master-Templates", "Uploaded-Resume");
-  fs.mkdirSync(keepDir, { recursive: true });
-  const saved = path.join(keepDir, ts + "_" + orig);
-  fs.writeFileSync(saved, buf);
+  const keepDir = path.join(ROOT, "01_Profile-Builder", "Uploaded-Files");
   const pb = path.join(ROOT, "01_Profile-Builder");
+  fs.mkdirSync(keepDir, { recursive: true });
   fs.mkdirSync(pb, { recursive: true });
   const tf = path.join(pb, "Resume-Text.md");
-  if (fs.existsSync(tf)) { // never overwrite: move the previous text to OLD with a dated name
-    const oldDir = path.join(ROOT, "OLD"); fs.mkdirSync(oldDir, { recursive: true });
-    fs.renameSync(tf, path.join(oldDir, "Resume-Text_" + ts + ".md"));
+  if (!fs.existsSync(tf)) fs.writeFileSync(tf, "# Uploaded files (text the assistant can read)\n\n", "utf8");
+  const results = [];
+  let chars = 0;
+  for (const item of incoming) {
+    const orig = path.basename(String(item.filename || "file")).replace(/[^\w .()\-]/g, "_").slice(0, 100) || "file";
+    let buf;
+    try { buf = Buffer.from(String(item.data || ""), "base64"); } catch { results.push({ name: orig, error: "Could not read that file." }); continue; }
+    if (!buf.length) { results.push({ name: orig, error: "That file is empty." }); continue; }
+    if (buf.length > 20e6) { results.push({ name: orig, error: "Too big (over 20 MB)." }); continue; }
+    const saved = path.join(keepDir, ts + "_" + orig);
+    fs.writeFileSync(saved, buf);
+    const got = await extractUpload(orig, buf);
+    chars += got.text.length;
+    const rel = path.relative(ROOT, saved);
+    fs.appendFileSync(tf, `## ${orig}\n\nUploaded: ${new Date().toLocaleString()}\nSaved as: ${rel}\n${got.note ? "Note: " + got.note + "\n" : ""}\n${got.text ? got.text + "\n" : ""}\n---\n\n`, "utf8");
+    results.push({ name: orig, saved: rel, chars: got.text.length, note: got.note || "" });
   }
-  fs.writeFileSync(tf, "# Resume text (pulled from the uploaded file)\n\nOriginal file: " + path.relative(ROOT, saved) + "\nUploaded: " + new Date().toLocaleString() + "\n\n---\n\n" + text + "\n");
-  send(res, 200, { ok: true, chars: text.length, saved: path.relative(ROOT, saved), warning: text.length < 200 ? "I could only read a little text from that file. If it is a scan or a picture, please upload a Word version instead (or paste the text into the chat)." : "" });
+  const okN = results.filter((r) => !r.error).length;
+  const notes = results.map((r) => r.error ? r.name + ": " + r.error : (r.note ? r.name + ": " + r.note : r.name + " saved")).join(" ");
+  send(res, 200, { ok: okN > 0, count: okN, chars, files: results, warning: notes });
 }
 
 function sse(res, ev, data) { res.write(`event: ${ev}\ndata: ${JSON.stringify(data)}\n\n`); }
@@ -569,4 +614,5 @@ server.on("error", (e) => {
   if (e.code === "EADDRINUSE") { console.log(`The Job Board is already running. Open http://${HOST}:${PORT} in your browser. (To restart it, close the other Job Board window first.)`); process.exit(0); }
   throw e;
 });
+abandonOldAgentStore();
 server.listen(PORT, HOST, () => { if (!process.env.JB_TEST_MODE) setTimeout(() => updater.confirmPendingUpdate(upCtx()), 6000); console.log(`Job Board running at http://${HOST}:${PORT}  (chat ${hasKey() ? "ready" : "needs API key in .env"})`); });

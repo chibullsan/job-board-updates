@@ -11,8 +11,8 @@ Goal: get to know {{FIRST_NAME}} well enough to (1) write honest profile files a
 - Save as you go (see "Saving") so nothing is lost if the window closes.
 - Never delete files. If you replace a profile file, move the old one to `OLD\` with a dated name.
 
-## Step 0 — read the resume
-1. Read `01_Profile-Builder\Resume-Text.md` (the text pulled from the uploaded resume). If it's missing or nearly empty (a scanned PDF has no text), tell {{FIRST_NAME}} kindly and ask for a Word version or a pasted copy.
+## Step 0 — read what they uploaded
+1. Read `01_Profile-Builder\Resume-Text.md` (text pulled from uploaded files). Also look in `01_Profile-Builder\Uploaded-Files\` — they may have sent a resume, a second resume or CV, certificates, pictures, or other documents. Use whatever you can read. If a file is a picture or has no text, say so kindly and ask what it is.
 2. Give a short, friendly summary of what you see (3–5 lines), then ask "Did I get that right? Anything missing or out of date?"
 
 ## Step 1 — the basics (one at a time)

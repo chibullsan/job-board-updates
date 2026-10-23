@@ -1,7 +1,7 @@
 {
-  "version": "1.0.4",
-  "notes": "Fix Upload resume so the file picker opens.",
-  "publishedAt": "2026-10-23T17:55:18.619Z",
+  "version": "1.0.5",
+  "notes": "Fix broken assistant memory. Upload any files, several at once.",
+  "publishedAt": "2026-10-23T18:04:40.033Z",
   "package": {
     "dependencies": {
       "@cursor/sdk": "^1.0.40",
@@ -12,13 +12,13 @@
   "files": [
     {
       "path": "server.js",
-      "sha256": "4d7853b5d2be93be659e8b912e9ada0d42882db059fb872877e2c4f368dc3cdd",
-      "size": 31354
+      "sha256": "b72905de47a54ab5cb94c62d832cd7842729d06773d6750e61efc60788c6d088",
+      "size": 33318
     },
     {
       "path": "index.html",
-      "sha256": "afd7e2cccea4651d3fb7a432850e6024f90d915e59cdda9d8f3b1790222b7db1",
-      "size": 47934
+      "sha256": "cd178eed443dddffa0b3d4a6c324078d200ee055020f6b7cfd002d8ee39bcda2",
+      "size": 48585
     },
     {
       "path": "refresh-board-run.js",
@@ -27,8 +27,8 @@
     },
     {
       "path": "resume-extract.js",
-      "sha256": "d2ab9f3b9ad790b2ede30cc647befc7f1db3c03e8aa634335e9124ac9b6628a8",
-      "size": 1641
+      "sha256": "ce36810b99e8d76e2b6396ee9fc3d68ad48ff98ce05adf2a72e217c4a1977ab3",
+      "size": 2354
     },
     {
       "path": "probe-sources.js",
@@ -42,13 +42,13 @@
     },
     {
       "path": "AGENT-INSTRUCTIONS.template.md",
-      "sha256": "d8764ce7f95a22f546da282ae9a211ad24c73069929f0659364b0c0fed085780",
-      "size": 6064
+      "sha256": "6d7ca78ca3bbd4b8d09f17a684efbe6a61343785a4aec5d6cd3a70046c9ea1cb",
+      "size": 6234
     },
     {
       "path": "INTERVIEW-GUIDE.md",
-      "sha256": "d41927b26be197b24343d5741377e8f453b150a2606abc3156d4a6a4397b1944",
-      "size": 8146
+      "sha256": "be2081b9d9b1a689d1a5ea9ab030d7e5e5b21440ca4b47ab25f6012c163f4623",
+      "size": 8262
     },
     {
       "path": "starter-history.json",
@@ -56,8 +56,13 @@
       "size": 3562
     },
     {
+      "path": "update-config.json",
+      "sha256": "9b918c4ccb918ad6bacb46ae577501156a225556439132efae8fe78cc10daff8",
+      "size": 88
+    },
+    {
       "path": "version.json",
-      "sha256": "7930bcf6f93a78527c3431aab710090b1bafb58c8363683114e7a03240bd2680",
+      "sha256": "d1536adf72c2b8edbd5048714acda61febe1aa2352e1bbad03bf21614fc672ee",
       "size": 42
     },
     {

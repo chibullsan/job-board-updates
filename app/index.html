@@ -210,7 +210,7 @@ a{color:#0f766e;font-weight:700;text-decoration:underline;text-underline-offset:
     <div id="list"></div>
   </section>
   <aside id="chat">
-    <div id="chatHead"><b>Assistant</b><label class="btn-like file-btn" title="Upload your resume (Word or PDF)">Upload resume<input type="file" id="resumeFile" accept=".docx,.pdf,.txt,.md,.rtf"></label><button type="button" id="resetAgentBtn" title="Start a fresh assistant. Does not erase the chat history on this page.">Fix assistant</button><button type="button" id="stopBtn" disabled title="Stop the assistant mid-reply">Stop</button></div>
+    <div id="chatHead"><b>Assistant</b><label class="btn-like file-btn" title="Upload resumes, CVs, certificates, pictures — any files, as many as you want">Upload files<input type="file" id="resumeFile" multiple></label><button type="button" id="resetAgentBtn" title="Start a fresh assistant. Does not erase the chat history on this page.">Fix assistant</button><button type="button" id="stopBtn" disabled title="Stop the assistant mid-reply">Stop</button></div>
     <div id="banner" style="display:none"></div>
     <div id="msgs"></div>
     <div id="inputRow"><textarea id="inp" placeholder="Message… Enter to send. Send again while busy to steer." aria-label="Message to assistant. Enter sends. Send again while busy to steer. Shift+Enter for new line."></textarea><button class="primary" id="sendBtn">Send</button></div>
@@ -500,7 +500,7 @@ function setupBanner(){
     const key=$("#keyIn").value.trim(),m=$("#keyMsg");if(!key){m.textContent="Paste the key first.";return}
     $("#keyBtn").disabled=true;m.textContent="Testing the key...";
     try{const r=await fetch("/api/setup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key})});const j=await r.json();
-      if(r.ok){chatReady=true;setupBanner();toast("Assistant is on");add("s","The assistant is on. "+((window.boardConfig&&window.boardConfig.resumeUploaded)?"Type a question or use Draft on a role card.":"Next, press Upload resume (top of this panel) so we can get started."))}
+      if(r.ok){chatReady=true;setupBanner();toast("Assistant is on");add("s","The assistant is on. "+((window.boardConfig&&window.boardConfig.resumeUploaded)?"Type a question or use Draft on a role card.":"Next, press Upload files (top of this panel) so we can get started. You can send a resume, a second resume or CV, certificates, or pictures — as many as you want."))}
       else{m.textContent=j.error||"That did not work.";$("#keyBtn").disabled=false}
     }catch(e){m.textContent="Lost connection to the board: "+e.message;$("#keyBtn").disabled=false}
   };
@@ -624,23 +624,30 @@ if(nameBtn)nameBtn.onclick=async()=>{
 };
 const nameIn=$("#nameIn");if(nameIn)nameIn.addEventListener("keydown",e=>{if(e.key==="Enter")nameBtn&&nameBtn.click()});
 
-/* ---- resume upload ---- */
+/* ---- file upload (any type, several at once) ---- */
 $("#resumeFile").onchange=async(e)=>{
-  const f=e.target.files[0];e.target.value="";if(!f)return;
-  if(f.size>20e6){toast("That file is too big (over 20 MB).");return}
-  toast("Reading your resume...");
-  let data;
-  try{data=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]||"");r.onerror=()=>no(new Error("could not read the file"));r.readAsDataURL(f)})}
-  catch(err){add("e","Could not read that file: "+err.message);return}
+  const files=[...e.target.files];e.target.value="";if(!files.length)return;
+  if(files.length>20){toast("Please pick 20 files or fewer at a time.");return}
+  const tooBig=files.find(f=>f.size>20e6);
+  if(tooBig){toast(tooBig.name+" is too big (over 20 MB).");return}
+  toast("Saving "+files.length+" file"+(files.length===1?"":"s")+"...");
+  const payload=[];
+  try{
+    for(const f of files){
+      const data=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]||"");r.onerror=()=>no(new Error(f.name));r.readAsDataURL(f)});
+      payload.push({filename:f.name,data});
+    }
+  }catch(err){add("e","Could not read a file: "+err.message);return}
   let j={};let ok=false;
-  try{const r=await fetch("/api/upload-resume",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({filename:f.name,data})});ok=r.ok;j=await r.json().catch(()=>({}))}
+  try{const r=await fetch("/api/upload-resume",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({files:payload})});ok=r.ok;j=await r.json().catch(()=>({}))}
   catch(err){add("e","Upload failed: "+err.message);return}
   if(!ok){add("e",j.error||"Upload failed.");return}
-  add("s","Resume saved ("+j.chars+" characters read). "+(j.warning||""));
+  add("s",(j.count||files.length)+" file(s) saved"+(j.chars?(" ("+j.chars+" characters of text read)"):"")+". "+(j.warning||""));
   const c=window.boardConfig||{};
-  if(chatReady&&!j.warning){
-    send(c.profileReady?"I uploaded an updated resume. Please compare it with my profile files, tell me what changed, and ask me to confirm any updates before you save them.":"I just uploaded my resume. Please read it and start the get-to-know-you interview.");
-  }else if(!chatReady){add("s","Next, turn the assistant on using the setup box above. Then tell me you are ready and we will start.")}
+  const list=(j.files||[]).map(x=>x.name).join(", ")||files.map(f=>f.name).join(", ");
+  if(chatReady){
+    send(c.profileReady?"I uploaded file(s): "+list+". Please read 01_Profile-Builder\\Resume-Text.md and the files in 01_Profile-Builder\\Uploaded-Files, tell me what you see, and ask me to confirm any profile updates before you save them.":"I just uploaded file(s): "+list+". Please read 01_Profile-Builder\\Resume-Text.md and 01_Profile-Builder\\Uploaded-Files, then start the get-to-know-you interview.");
+  }else{add("s","Next, turn the assistant on using the setup box above. Then tell me you are ready and we will start.")}
   loadConfig();
 };
 

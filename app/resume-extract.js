@@ -1,6 +1,7 @@
-// Pulls plain text out of an uploaded resume (.docx, .pdf, .txt, .md, .rtf).
-// Used by the upload button on the board page. Nothing leaves this PC.
+// Pulls plain text out of uploaded files when it can. Pictures and unknown types are saved, not rejected.
 const path = require("path");
+
+const IMAGE = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tif", ".tiff", ".heic", ".heif"]);
 
 async function extractText(filename, buf) {
   const ext = path.extname(String(filename || "")).toLowerCase();
@@ -15,9 +16,8 @@ async function extractText(filename, buf) {
     const { text } = await pdfText(pdf, { mergePages: true });
     return clean(Array.isArray(text) ? text.join("\n") : text);
   }
-  if (ext === ".txt" || ext === ".md" || ext === ".text") return clean(buf.toString("utf8"));
+  if (ext === ".txt" || ext === ".md" || ext === ".text" || ext === ".csv") return clean(buf.toString("utf8"));
   if (ext === ".rtf") {
-    // Very rough: strip RTF control words. Good enough for a plain resume.
     return clean(
       buf
         .toString("latin1")
@@ -28,8 +28,28 @@ async function extractText(filename, buf) {
         .replace(/[{}]/g, "")
     );
   }
-  if (ext === ".doc") throw new Error("Old .doc files can't be read. Open it in Word, choose Save As, and pick Word Document (.docx) or PDF, then upload that.");
-  throw new Error("That file type isn't supported. Please upload a Word (.docx) or PDF file.");
+  if (ext === ".doc") {
+    const err = new Error("Old .doc files can't be read as text. I saved the file. If you can, also upload a Word (.docx) or PDF copy.");
+    err.code = "DOC";
+    throw err;
+  }
+  if (IMAGE.has(ext)) {
+    const err = new Error("Saved as a picture. I cannot read the words in the image automatically — please tell me what it is, or upload a Word/PDF if it has text I should use.");
+    err.code = "IMAGE";
+    throw err;
+  }
+  const err = new Error("Saved. I could not pull text from this file type. Tell me what it is, or upload a Word/PDF copy if you want me to read it.");
+  err.code = "UNKNOWN";
+  throw err;
+}
+
+async function extractUpload(filename, buf) {
+  try {
+    const text = await extractText(filename, buf);
+    return { text, note: text ? "" : "Little or no text found (it may be a scan or a picture)." };
+  } catch (e) {
+    return { text: "", note: String((e && e.message) || e), savedOnly: true };
+  }
 }
 
 function clean(s) {
@@ -40,4 +60,4 @@ function clean(s) {
     .trim();
 }
 
-module.exports = { extractText };
+module.exports = { extractText, extractUpload };
