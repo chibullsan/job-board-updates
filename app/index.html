@@ -43,6 +43,11 @@ h1{font-size:21px;margin:0 0 4px;font-weight:700}
 .counts{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;align-items:flex-start}
 .count{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;box-shadow:var(--shadow)}
 .count b{font-size:17px;margin-right:4px;color:var(--ink)}
+#chatHead{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#chatHead b{margin-right:4px}
+#chatHead label,#chatHead button{margin:0}
+.file-btn{position:relative;overflow:hidden}
+.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:80px}
 #toggleChat{align-self:center}
 .header-actions{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .header-actions .primary{min-width:9em}
@@ -71,8 +76,8 @@ label.chk-sm{padding:4px 8px;font-size:12px}
 .status-filters .chk-st-Applied{border-color:#99f6e4;background:#f4fbfb}
 .chips{display:flex;gap:6px;flex-wrap:wrap;padding:4px 0}
 .chips-label{font-size:12px;font-weight:600;color:var(--ink);align-self:center;margin-right:4px}
-button{font:inherit;cursor:pointer;color:var(--ink);background:var(--btn-bg);border:1px solid var(--btn-border);border-radius:8px;padding:7px 14px;font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08)}
-button:hover{background:#f1f5f9;border-color:#475569}
+button,.btn-like{font:inherit;cursor:pointer;color:var(--ink);background:var(--btn-bg);border:1px solid var(--btn-border);border-radius:8px;padding:7px 14px;font-weight:600;box-shadow:0 1px 2px rgba(15,23,42,.08);display:inline-block}
+button:hover,.btn-like:hover{background:#f1f5f9;border-color:#475569}
 button.on{background:var(--select);color:var(--selectInk);border-color:var(--select)}
 button.primary{background:var(--action);color:var(--actionInk);border-color:#0f766e;font-weight:700}
 button.primary:hover{filter:brightness(1.06);background:#14b8a6}
@@ -205,13 +210,31 @@ a{color:#0f766e;font-weight:700;text-decoration:underline;text-underline-offset:
     <div id="list"></div>
   </section>
   <aside id="chat">
-    <div id="chatHead"><b>Assistant</b><button type="button" id="resumeBtn" title="Upload your resume (Word or PDF)">Upload resume</button><input type="file" id="resumeFile" accept=".docx,.pdf,.txt,.md,.rtf" style="display:none"><button type="button" id="resetAgentBtn" title="Start a fresh assistant. Does not erase the chat history on this page.">Fix assistant</button><button type="button" id="stopBtn" disabled title="Stop the assistant mid-reply">Stop</button></div>
+    <div id="chatHead"><b>Assistant</b><label class="btn-like file-btn" title="Upload your resume (Word or PDF)">Upload resume<input type="file" id="resumeFile" accept=".docx,.pdf,.txt,.md,.rtf"></label><button type="button" id="resetAgentBtn" title="Start a fresh assistant. Does not erase the chat history on this page.">Fix assistant</button><button type="button" id="stopBtn" disabled title="Stop the assistant mid-reply">Stop</button></div>
     <div id="banner" style="display:none"></div>
     <div id="msgs"></div>
     <div id="inputRow"><textarea id="inp" placeholder="Message… Enter to send. Send again while busy to steer." aria-label="Message to assistant. Enter sends. Send again while busy to steer. Shift+Enter for new line."></textarea><button class="primary" id="sendBtn">Send</button></div>
   </aside>
 </main>
 <div id="toast"></div>
+<div id="nameOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;align-items:center;justify-content:center">
+  <div style="background:#fff;color:#222;padding:26px;border-radius:12px;max-width:440px;width:92%;font-size:16px;line-height:1.4">
+    <h2 style="margin:0 0 8px;color:#222">Welcome!</h2>
+    <p style="margin:0 0 12px">What is your name? It is used for the heading of your board and so the assistant knows what to call you.</p>
+    <input id="nameIn" type="text" placeholder="Your name" autocomplete="off" style="width:100%;padding:10px;font-size:16px;box-sizing:border-box;margin-bottom:10px">
+    <button class="primary" id="nameBtn" type="button" style="padding:10px 18px;font-size:16px">Continue</button>
+    <div id="nameMsg" style="color:#b00;margin-top:8px;min-height:1em"></div>
+  </div>
+</div>
+<div id="updPanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;align-items:center;justify-content:center">
+  <div style="background:#fff;color:#222;padding:24px;border-radius:12px;max-width:520px;width:92%;font-size:15px;line-height:1.45">
+    <h2 id="updTitle" style="margin:0 0 8px;color:#222">Updates</h2>
+    <div id="updMsg"></div>
+    <div id="updBar" style="display:none;height:8px;background:#ddd;border-radius:4px;margin:10px 0"><div id="updBarIn" style="height:8px;width:0;background:#2a7;border-radius:4px"></div></div>
+    <div id="updExtra"></div>
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button id="updGo" class="primary" type="button" style="display:none"></button><button id="updClose" type="button">Close</button></div>
+  </div>
+</div>
 <script>
 const FITS=["STRONG","GOOD","MEDIUM","CHECK","REACH","SKIP"];
 const STATUSES=["Apply","Maybe","Skip","Applied"];
@@ -545,7 +568,8 @@ $("#stopBtn").onclick=async()=>{
   add("s","Stopped.");
   updateStopButton();
 };
-$("#resetAgentBtn").onclick=async()=>{
+const resetAgentBtn=$("#resetAgentBtn");
+if(resetAgentBtn)resetAgentBtn.onclick=async()=>{
   try{chatAbort&&chatAbort.abort()}catch{}
   await api("/api/chat/stop",{method:"POST"}).catch(()=>{});
   const r=await api("/api/chat/reset",{method:"POST"}).catch(()=>({error:"Lost connection."}));
@@ -586,21 +610,21 @@ async function activityLoop(){
   setTimeout(activityLoop,ms);
 }
 /* ---- first run: name ---- */
-$("#nameBtn").onclick=async()=>{
+const nameBtn=$("#nameBtn");
+if(nameBtn)nameBtn.onclick=async()=>{
   const v=$("#nameIn").value.trim();if(!v){$("#nameMsg").textContent="Please type your name.";return}
-  $("#nameBtn").disabled=true;
+  nameBtn.disabled=true;
   try{
     const r=await fetch("/api/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fullName:v})});
-    if(!r.ok){const j=await r.json().catch(()=>({}));$("#nameMsg").textContent=j.error||"That did not work.";$("#nameBtn").disabled=false;return}
+    if(!r.ok){const j=await r.json().catch(()=>({}));$("#nameMsg").textContent=j.error||"That did not work.";nameBtn.disabled=false;return}
     $("#nameOverlay").style.display="none";
     await loadConfig();
     msgs.innerHTML="";await loadChatHistory();
-  }catch(e){$("#nameMsg").textContent="Lost connection to the board: "+e.message;$("#nameBtn").disabled=false}
+  }catch(e){$("#nameMsg").textContent="Lost connection to the board: "+e.message;nameBtn.disabled=false}
 };
-$("#nameIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#nameBtn").click()});
+const nameIn=$("#nameIn");if(nameIn)nameIn.addEventListener("keydown",e=>{if(e.key==="Enter")nameBtn&&nameBtn.click()});
 
 /* ---- resume upload ---- */
-$("#resumeBtn").onclick=()=>$("#resumeFile").click();
 $("#resumeFile").onchange=async(e)=>{
   const f=e.target.files[0];e.target.value="";if(!f)return;
   if(f.size>20e6){toast("That file is too big (over 20 MB).");return}
@@ -671,23 +695,5 @@ $("#pubBtn").onclick=async()=>{
 activityLoop();
 loadConfig().then(()=>loadAll(true));
 </script>
-<div id="nameOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;align-items:center;justify-content:center">
-  <div style="background:#fff;color:#222;padding:26px;border-radius:12px;max-width:440px;width:92%;font-size:16px;line-height:1.4">
-    <h2 style="margin:0 0 8px;color:#222">Welcome!</h2>
-    <p style="margin:0 0 12px">What is your name? It is used for the heading of your board and so the assistant knows what to call you.</p>
-    <input id="nameIn" type="text" placeholder="Your name" autocomplete="off" style="width:100%;padding:10px;font-size:16px;box-sizing:border-box;margin-bottom:10px">
-    <button class="primary" id="nameBtn" type="button" style="padding:10px 18px;font-size:16px">Continue</button>
-    <div id="nameMsg" style="color:#b00;margin-top:8px;min-height:1em"></div>
-  </div>
-</div>
-<div id="updPanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:60;align-items:center;justify-content:center">
-  <div style="background:#fff;color:#222;padding:24px;border-radius:12px;max-width:520px;width:92%;font-size:15px;line-height:1.45">
-    <h2 id="updTitle" style="margin:0 0 8px;color:#222">Updates</h2>
-    <div id="updMsg"></div>
-    <div id="updBar" style="display:none;height:8px;background:#ddd;border-radius:4px;margin:10px 0"><div id="updBarIn" style="height:8px;width:0;background:#2a7;border-radius:4px"></div></div>
-    <div id="updExtra"></div>
-    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button id="updGo" class="primary" type="button" style="display:none"></button><button id="updClose" type="button">Close</button></div>
-  </div>
-</div>
 </body>
 </html>

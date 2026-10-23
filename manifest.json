@@ -1,7 +1,7 @@
 {
-  "version": "1.0.3",
-  "notes": "Recover from a damaged local assistant session without losing chat history.",
-  "publishedAt": "2026-10-23T17:50:51.765Z",
+  "version": "1.0.4",
+  "notes": "Fix Upload resume so the file picker opens.",
+  "publishedAt": "2026-10-23T17:55:18.619Z",
   "package": {
     "dependencies": {
       "@cursor/sdk": "^1.0.40",
@@ -17,8 +17,8 @@
     },
     {
       "path": "index.html",
-      "sha256": "4645786c83bbae0d6354e962580b23032b434a811b3d1fd2f30a997d6bbd8b3e",
-      "size": 47599
+      "sha256": "afd7e2cccea4651d3fb7a432850e6024f90d915e59cdda9d8f3b1790222b7db1",
+      "size": 47934
     },
     {
       "path": "refresh-board-run.js",
@@ -57,7 +57,7 @@
     },
     {
       "path": "version.json",
-      "sha256": "d97e197183cac9aedeb2360d8bbd7abcf5fbeef3d8f63e697cf5f1fe54704746",
+      "sha256": "7930bcf6f93a78527c3431aab710090b1bafb58c8363683114e7a03240bd2680",
       "size": 42
     },
     {
