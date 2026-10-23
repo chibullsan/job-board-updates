@@ -1,7 +1,7 @@
 {
-  "version": "1.0.2",
-  "notes": "Show Check for updates on every installed board.",
-  "publishedAt": "2026-10-22T23:40:25.792Z",
+  "version": "1.0.3",
+  "notes": "Recover from a damaged local assistant session without losing chat history.",
+  "publishedAt": "2026-10-23T17:50:51.765Z",
   "package": {
     "dependencies": {
       "@cursor/sdk": "^1.0.40",
@@ -12,13 +12,13 @@
   "files": [
     {
       "path": "server.js",
-      "sha256": "9346894c33ae69a8f3bfe7adc8a98614f12c4a21473d260ec9eb80205839f269",
-      "size": 30416
+      "sha256": "4d7853b5d2be93be659e8b912e9ada0d42882db059fb872877e2c4f368dc3cdd",
+      "size": 31354
     },
     {
       "path": "index.html",
-      "sha256": "ecb1ddc096a3483e58410043b8aaee0173312db2b832eb2da3dead3d5ca8c9f5",
-      "size": 46940
+      "sha256": "4645786c83bbae0d6354e962580b23032b434a811b3d1fd2f30a997d6bbd8b3e",
+      "size": 47599
     },
     {
       "path": "refresh-board-run.js",
@@ -57,7 +57,7 @@
     },
     {
       "path": "version.json",
-      "sha256": "a41ff6840e941e6f5031bc6c63aea1a290bc8d4ad6b3d5c32342f47b9f8a32ad",
+      "sha256": "d97e197183cac9aedeb2360d8bbd7abcf5fbeef3d8f63e697cf5f1fe54704746",
       "size": 42
     },
     {

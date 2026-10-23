@@ -163,13 +163,32 @@ const sdk = () => (sdkP ||= import("@cursor/sdk"));
 const MODEL = () => ({ id: process.env.CURSOR_MODEL || "composer-2.5" });
 const hasKey = () => !!process.env.CURSOR_API_KEY && !/paste|your/i.test(process.env.CURSOR_API_KEY);
 
+function errText(e) {
+  return String((e && (e.message || e.name)) || e || "");
+}
+/** Saved local-agent memory is gone or damaged — start a new assistant, keep the on-page history. */
+function isDeadSession(e) {
+  const t = errText(e).toLowerCase();
+  return /corrupt local agent checkpoint|missing root blob|cannot resume|failed to (load|resume|open) session|session not found|no conversation found|checkpoint/.test(t);
+}
+function isStuckRun(e) {
+  return !!(e && (e.name === "AgentBusyError" || /already has active run|active run/i.test(errText(e))));
+}
+function friendlyChatError(e) {
+  if (isDeadSession(e)) return "The assistant's saved memory on this PC was damaged, so I started a fresh assistant. Your chat history on this page is still there. Please send your message again.";
+  const t = errText(e).replace(/[^\t\n\r\x20-\x7e]/g, " ").replace(/\s+/g, " ").trim();
+  if (!t) return "The assistant hit a problem. Please try sending again.";
+  return t.length > 220 ? t.slice(0, 220) + "…" : t;
+}
+
 async function getAgent() {
   if (agent) return agent;
   const { Agent } = await sdk();
   const opts = { apiKey: process.env.CURSOR_API_KEY, local: { cwd: ROOT }, model: MODEL() };
   const saved = readJSON(F.session, null);
   if (saved && saved.agentId) {
-    try { agent = await Agent.resume(saved.agentId, opts); firstTurn = false; return agent; } catch {}
+    try { agent = await Agent.resume(saved.agentId, opts); firstTurn = false; return agent; }
+    catch (e) { try { fs.unlinkSync(F.session); } catch {} }
   }
   agent = await Agent.create(opts);
   writeJSON(F.session, { agentId: agent.agentId, created: new Date().toISOString() });
@@ -386,21 +405,24 @@ async function chat(req, res) {
     try {
       run = await a.send(prompt, { model: MODEL() });
     } catch (e) {
-      // A saved assistant can get stuck "in a run" (for example after a crash or a closed window). Start a fresh one automatically.
-      const stuck = e && (e.name === "AgentBusyError" || /already has active run|active run/i.test(String(e.message || e)));
-      if (!stuck) throw e;
-      // First try to unstick the same assistant (keeps its memory). Only start a new one if that fails.
-      sse(res, "tool", { name: "clearing a stuck session" });
-      const cleared = await clearStaleRuns(a.agentId);
-      try {
-        if (!cleared) throw e;
-        run = await a.send(prompt, { model: MODEL() });
-      } catch {
-        sse(res, "tool", { name: "starting a fresh session" });
-        await resetChat();
-        a = await getAgent();
-        prompt = buildFirst(); firstTurn = false;
-        run = await a.send(prompt, { model: MODEL() });
+      if (isDeadSession(e) || isStuckRun(e)) {
+        if (isStuckRun(e) && !isDeadSession(e)) {
+          sse(res, "tool", { name: "clearing a stuck session" });
+          const cleared = await clearStaleRuns(a.agentId);
+          try {
+            if (!cleared) throw e;
+            run = await a.send(prompt, { model: MODEL() });
+          } catch (e2) { e = e2; }
+        }
+        if (!run) {
+          sse(res, "tool", { name: "starting a fresh session" });
+          await resetChat();
+          a = await getAgent();
+          prompt = buildFirst(); firstTurn = false;
+          run = await a.send(prompt, { model: MODEL() });
+        }
+      } else {
+        throw e;
       }
     }
     currentRun = run;
@@ -425,7 +447,10 @@ async function chat(req, res) {
     appendLog(message, reply, tools);
     sse(res, "done", { status: result.status });
   } catch (e) {
-    sse(res, "error", { message: String((e && e.message) || e), retryable: !!(e && e.isRetryable) });
+    if (isDeadSession(e)) {
+      try { await resetChat(); } catch {}
+    }
+    sse(res, "error", { message: friendlyChatError(e), retryable: true });
   } finally {
     if (reply.trim()) logHistory("assistant", reply, tools);
     currentRun = null; busy = false; setActivity("Ready"); res.end();

@@ -43,7 +43,9 @@ h1{font-size:21px;margin:0 0 4px;font-weight:700}
 .counts{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;align-items:flex-start}
 .count{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12.5px;box-shadow:var(--shadow)}
 .count b{font-size:17px;margin-right:4px;color:var(--ink)}
-#toggleChat{margin-left:auto;align-self:center}
+#toggleChat{align-self:center}
+.header-actions{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.header-actions .primary{min-width:9em}
 main{flex:1;display:flex;min-height:0}
 #board{flex:1;overflow:auto;padding:16px 20px 24px}
 #chat{width:400px;border-left:2px solid var(--line-soft);background:var(--panel);display:flex;flex-direction:column;min-height:0;box-shadow:inset 4px 0 12px rgba(0,0,0,.04)}
@@ -151,11 +153,13 @@ a{color:#0f766e;font-weight:700;text-decoration:underline;text-underline-offset:
 <body>
 <header>
   <div class="header-row">
-    <div><h1 id="boardTitle">Job Board</h1><div class="sub" id="upd"></div><div class="header-tip">Star roles (5 = top pick). Notes stay on this PC and the assistant reads them. <strong>Check for updates</strong> is the button at the top right. Use the browser <strong>Refresh</strong> button if the page looks outdated.</div></div>
+    <div><h1 id="boardTitle">Job Board</h1><div class="sub" id="upd"></div><div class="header-tip">Star roles (5 = top pick). Notes stay on this PC and the assistant reads them. Use the browser <strong>Refresh</strong> button if the page looks outdated.</div></div>
     <div class="counts" id="counts"></div>
-    <button id="toggleChat" type="button">Hide assistant</button>
-    <button id="updBtn" type="button" title="See if there is a newer version of the Job Board">Check for updates</button>
-    <button id="pubBtn" type="button" style="display:none" title="Send your latest program changes to the other boards">Publish update</button>
+    <div class="header-actions">
+      <button id="toggleChat" type="button">Hide assistant</button>
+      <button id="updBtn" type="button" title="Get program changes from GitHub onto this board">Check for updates</button>
+      <button id="pubBtn" class="primary" type="button" title="Send this board's program changes to GitHub for Debbie">Publish update</button>
+    </div>
   </div>
   <div id="activityTicker" class="activity-ticker idle" role="status" aria-live="polite">Idle — nothing running</div>
   <div id="serverWarn" class="server-warn" style="display:none" role="alert"></div>
@@ -201,7 +205,7 @@ a{color:#0f766e;font-weight:700;text-decoration:underline;text-underline-offset:
     <div id="list"></div>
   </section>
   <aside id="chat">
-    <div id="chatHead"><b>Assistant</b><button type="button" id="resumeBtn" title="Upload your resume (Word or PDF)">Upload resume</button><input type="file" id="resumeFile" accept=".docx,.pdf,.txt,.md,.rtf" style="display:none"><button type="button" id="stopBtn" disabled title="Stop the assistant mid-reply">Stop</button></div>
+    <div id="chatHead"><b>Assistant</b><button type="button" id="resumeBtn" title="Upload your resume (Word or PDF)">Upload resume</button><input type="file" id="resumeFile" accept=".docx,.pdf,.txt,.md,.rtf" style="display:none"><button type="button" id="resetAgentBtn" title="Start a fresh assistant. Does not erase the chat history on this page.">Fix assistant</button><button type="button" id="stopBtn" disabled title="Stop the assistant mid-reply">Stop</button></div>
     <div id="banner" style="display:none"></div>
     <div id="msgs"></div>
     <div id="inputRow"><textarea id="inp" placeholder="Message… Enter to send. Send again while busy to steer." aria-label="Message to assistant. Enter sends. Send again while busy to steer. Shift+Enter for new line."></textarea><button class="primary" id="sendBtn">Send</button></div>
@@ -513,7 +517,7 @@ async function send(text,opts={}){
         const ev=(blk.match(/^event: (.*)$/m)||[])[1],dt=JSON.parse((blk.match(/^data: (.*)$/m)||[,"{}"])[1]);
         if(ev==="text"){if(!cur){cur=add("a","");raw=""}raw+=dt.text;cur.innerHTML=md(raw);msgs.scrollTop=msgs.scrollHeight}
         else if(ev==="tool"){const tn=String(dt.name||"tool").replace(/_/g," ");status.textContent="Working: "+tn+"…";updateActivity({refreshBusy:false,busy:true,activity:"Assistant: "+tn+"…"});cur=null}
-        else if(ev==="error"){add("e",dt.message)}
+        else if(ev==="error"){add("e",String(dt.message||"Something went wrong.").slice(0,280))}
         else if(ev==="done"){status.remove()}}
     }
   }catch(e){
@@ -540,6 +544,13 @@ $("#stopBtn").onclick=async()=>{
   await api("/api/chat/stop",{method:"POST"});
   add("s","Stopped.");
   updateStopButton();
+};
+$("#resetAgentBtn").onclick=async()=>{
+  try{chatAbort&&chatAbort.abort()}catch{}
+  await api("/api/chat/stop",{method:"POST"}).catch(()=>{});
+  const r=await api("/api/chat/reset",{method:"POST"}).catch(()=>({error:"Lost connection."}));
+  if(r.error){add("e",r.error);return}
+  add("s","Started a fresh assistant. Your earlier messages are still on this page. Send again.");
 };
 const WELCOME="Ask me to search for roles, update the board, or draft a resume. Send again while I’m working to steer. Refresh & search runs automated link checks on the board.";
 /* Chat history is saved on the server (chat-history.jsonl) and shown again every time the page opens. */
